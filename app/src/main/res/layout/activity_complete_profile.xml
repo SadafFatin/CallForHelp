@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".CompleteProfileActivity"
+    android:gravity="center_horizontal"
+    android:padding="@dimen/card_elevation">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColorHint="#ADCCE2"
+        android:textColor="#243F52"
+        android:padding="@dimen/card_elevation"
+        android:layout_margin="@dimen/card_elevation"
+        android:textSize="19sp"
+        android:id="@+id/detail"/>
+
+    <TextView
+        android:id="@+id/address"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Your  Address "
+        android:inputType="text"
+        android:background="#7EE9E7E7"
+        android:padding="@dimen/card_elevation"
+        android:layout_margin="@dimen/card_elevation"
+        android:textSize="19sp"
+        android:drawableLeft="@drawable/ic_location"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/card_elevation"
+        android:layout_margin="@dimen/card_elevation"
+        android:textSize="19sp"
+        android:id="@+id/prompt" />
+
+
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Take a image "
+        android:background="@drawable/button_bg_light"
+        android:padding="@dimen/card_elevation"
+        android:layout_margin="@dimen/card_elevation"
+        android:drawableLeft="@drawable/ic_menu_camera"
+        android:drawablePadding="@dimen/card_elevation"
+        android:textColor="#ffff"
+        android:onClick="choose"/>
+
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:layout_marginTop="11dp"
+        android:background="@drawable/button_bg_accent"
+        android:fitsSystemWindows="true"
+        android:cropToPadding="true"
+        android:padding="@dimen/activity_horizontal_margin"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Update My Profile"
+        android:background="@drawable/button_bg_dark"
+        android:padding="@dimen/card_elevation"
+        android:layout_margin="@dimen/card_elevation"
+        android:drawableLeft="@drawable/ic_menu_send"
+        android:drawablePadding="@dimen/card_elevation"
+        android:textColor="#ffff"
+        android:onClick="upload"/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</LinearLayout>
+
+
+
+
+
+
+
+    <!--LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/card_elevation"
+            android:weightSum="2">
+
+            <com.google.android.material.button.MaterialButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Take a image "
+                android:background="@drawable/button_bg_light"
+                android:padding="@dimen/card_elevation"
+                android:layout_margin="@dimen/card_elevation"
+                android:drawableLeft="@drawable/ic_menu_camera"
+                android:drawablePadding="@dimen/card_elevation"
+                android:textColor="#ffff"
+                android:layout_weight="1"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Upload Your Image"
+                android:background="@drawable/button_bg_light"
+                android:padding="@dimen/card_elevation"
+                android:layout_margin="@dimen/card_elevation"
+                android:drawableLeft="@drawable/ic_menu_camera"
+                android:drawablePadding="@dimen/card_elevation"
+                android:textColor="#ffff"
+                android:layout_weight="1"/-->

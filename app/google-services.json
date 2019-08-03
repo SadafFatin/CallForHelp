@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "791353137813",
+    "firebase_url": "https://call-for-help-ttl.firebaseio.com",
+    "project_id": "call-for-help-ttl",
+    "storage_bucket": "call-for-help-ttl.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:791353137813:android:cdbfd0fbd4a1af2a",
+        "android_client_info": {
+          "package_name": "com.ttl.callforhelp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "791353137813-9lct1ljk0248st9te58gpu83lurndj2j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ttl.callforhelp",
+            "certificate_hash": "7c9644b0e4a509f01bccc95694c990a2af79240b"
+          }
+        },
+        {
+          "client_id": "791353137813-cpenkrqd050pnrukbk20bi7eklc5o7sc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVLOW7oN1hqktYkbDW3LblaVLWYyVUjb8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "791353137813-cpenkrqd050pnrukbk20bi7eklc5o7sc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
