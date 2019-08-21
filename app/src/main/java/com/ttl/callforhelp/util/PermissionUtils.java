@@ -124,6 +124,26 @@ public class PermissionUtils
         return true;
     }
 
+
+    public boolean isPermissionGranted(ArrayList<String> permissions) {
+
+        if(permissions.size()>0)
+        {
+            for(int i=0;i<permissions.size();i++)
+            {
+                int hasPermission = ContextCompat.checkSelfPermission(current_activity,permissions.get(i));
+                if (hasPermission != PackageManager.PERMISSION_GRANTED) {
+                    return false;
+                }
+
+            }
+        }
+
+        return true;
+    }
+
+
+
     /**
      *
      *

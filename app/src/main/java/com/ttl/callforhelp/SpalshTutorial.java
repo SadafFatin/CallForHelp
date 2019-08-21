@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
 import com.google.firebase.FirebaseApp;
@@ -50,22 +51,30 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
         permissionUtils = new PermissionUtils(this);
         permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
         permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
-        //permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         permissionUtils.check_permission(permissions, "Need GPS permission for getting your location", 1);
-
-
-
 
 
         FirebaseApp.initializeApp(this);
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-            startActivity(new Intent(this, DashboardActivity.class));
+            if( myPreference.getIsProfileComplete()){
+                if(myPreference.getUserType().equals(ReferenceTerms.naloxone)){
+                    startActivity(new Intent(this, NalexoneDashboardActivity.class));
+                }
+                else{
+                    startActivity(new Intent(this, OpioidDashboardActivity.class));
+                }
+
+            }
+            else {
+                startActivity(new Intent(this, CompleteProfileActivity.class));
+            }
+
         }
 
 
         sliderLayout = findViewById(R.id.imageSlider);
         sliderLayout.setIndicatorAnimation(SliderLayout.Animations.FILL); //set indicator animation by using SliderLayout.Animations. :WORM or THIN_WORM or COLOR or DROP or FILL or NONE or SCALE or SCALE_DOWN or SLIDE and SWAP!!
-        sliderLayout.setScrollTimeInSec(5); //set scroll delay in seconds :
+        sliderLayout.setScrollTimeInSec(7); //set scroll delay in seconds :
 
 
         setSliderViews();
@@ -101,19 +110,16 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == ReferenceTerms.signInRequest) {
             IdpResponse response = IdpResponse.fromResultIntent(data);
-
             if (resultCode == RESULT_OK) {
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                showLog(user.getDisplayName() + " " + user.getEmail() + " " + user.getPhoneNumber() + " " + user.getProviderId() + " "
-                        + user.getMetadata() + " " + user.toString());
                 setUserPreferences(user);
-                if (isPermissionGranted) {
+                if (permissionUtils.isPermissionGranted(permissions)) {
                     startActivity(new Intent(SpalshTutorial.this, CompleteProfileActivity.class));
                 } else {
-                    shoToast("You must turn on location and provide permission");
+                    showToast("You must turn on location and provide permission");
                 }
             } else {
-                shoToast("Failed To sign In");
+                showToast("Failed To sign In");
             }
         }
 
@@ -125,7 +131,7 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
         Log.d(" Custom Log Msg ", msg);
     }
 
-    private void shoToast(String msg) {
+    private void showToast(String msg) {
         Toast.makeText(SpalshTutorial.this, msg, Toast.LENGTH_LONG).show();
     }
 
@@ -136,8 +142,6 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
         myPreference.setUserName(user.getDisplayName());
         myPreference.setUserType(this.role);
         myPreference.setUserEmail(user.getEmail());
-        myPreference.setUserImgUri(" ");
-        myPreference.setUserAddress(this.address);
     }
 
 
@@ -176,12 +180,12 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
     @Override
     public void PermissionGranted(int request_code) {
         isPermissionGranted = true;
-        shoToast(""+isPermissionGranted);
+        showToast(""+isPermissionGranted);
     }
 
     @Override
     public void PartialPermissionGranted(int request_code, ArrayList<String> granted_permissions) {
-        isPermissionGranted = false;
+        isPermissionGranted = true;
     }
 
     @Override
@@ -196,6 +200,5 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
 
 
     public void login(View view) {
-
     }
 }

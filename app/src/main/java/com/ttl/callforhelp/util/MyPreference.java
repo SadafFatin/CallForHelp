@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 
+import com.ttl.callforhelp.model.User;
+
 public class MyPreference {
     private static MyPreference instance;
     private Editor preferenceEditor;
@@ -110,5 +112,19 @@ public class MyPreference {
         this.instance.setIsProfileComplete(false);
         this.instance.setUserAddress("");
         this.instance.setUserType("");
+    }
+
+    public void savePreferences(User user) {
+        this.instance.setUserImgUri(user.getImageUri());
+        this.instance.setUserName(user.getName());
+        this.instance.setUserEmail(user.getEmail());
+        this.instance.setIsProfileComplete(true);
+        this.instance.setUserAddress(user.getAddress());
+        this.instance.setUserType(user.getType());
+    }
+
+    public User getCurrentUser() {
+        User user = new User(this.instance.getUserType(),this.instance.getUserName(),this.instance.getUserEmail(),null,null,this.instance.getUserAddress(),this.instance.getUserImgUri());
+        return user;
     }
 }

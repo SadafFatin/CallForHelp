@@ -19,12 +19,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="@dimen/layout_padding"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
 
             <com.smarteist.autoimageslider.SliderLayout
                 android:id="@+id/imageSlider"
                 android:layout_width="match_parent"
-                android:layout_height="420dp"/>
+                android:layout_height="440dp"/>
 
             <TextView
                 android:layout_width="match_parent"
@@ -32,36 +33,60 @@
                 android:text="Register As"
                 android:gravity="center_horizontal"
                 android:textSize="22sp"
-                android:layout_marginTop="@dimen/layout_padding"/>
+                android:layout_margin="@dimen/layout_padding"/>
 
-            <Button
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/button_bg_light"
-                android:text="@string/naloxone_user"
-                android:textColor="#ffff"
-                android:layout_marginTop="@dimen/layout_padding"
-                android:onClick="naloxoneSignUp"
-                />
+                android:weightSum="2"
+                android:orientation="horizontal"
+                android:gravity="center_horizontal"
+                android:padding="@dimen/card_elevation"
+                >
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:background="@drawable/button_bg_light"
+                    android:text="@string/naloxone_user"
+                    android:textColor="#ffff"
+                    android:layout_marginTop="@dimen/layout_padding"
+                    android:onClick="naloxoneSignUp"
+                    android:layout_weight=".7"
+                    android:layout_margin="2dp"
+                    />
 
-            <Button
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:background="@drawable/button_bg_accent"
+                    android:text="@string/opioid_user"
+                    android:textColor="#ffff"
+                    android:layout_marginTop="@dimen/layout_padding"
+                    android:onClick="opioidSignUp"
+                    android:layout_weight=".7"
+                    android:layout_margin="2dp"/>
+
+            </LinearLayout>
+
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/button_bg_accent"
-                android:text="@string/opioid_user"
-                android:textColor="#ffff"
-                android:layout_marginTop="@dimen/layout_padding"
-                android:onClick="opioidSignUp"/>
+                android:text="Login"
+                android:gravity="center_horizontal"
+                android:textSize="22sp"
+                android:layout_margin="@dimen/layout_padding"/>
 
             <Button
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/button_bg_dark"
-                android:text="@string/login"
-                android:textColor="#ffff"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
                 android:layout_marginTop="@dimen/layout_padding"
                 android:layout_marginBottom="@dimen/layout_padding"
-                android:onClick="login"/>
+                android:background="@drawable/button_bg_dark"
+                android:onClick="login"
+                android:text="@string/login"
+                android:textColor="#ffff"
+                android:layout_margin="2dp"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

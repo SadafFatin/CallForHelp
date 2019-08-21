@@ -18,6 +18,7 @@
     <string name="menu_share">Share</string>
     <string name="menu_send">Send</string>
     <string name="logout">Logout</string>
+    <string name="menu_profile">Profile</string>
 
 
 </resources>
