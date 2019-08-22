@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".NalexoneDashboardActivity"
-    tools:showIn="@layout/app_bar_opioid_dashboard"
+    tools:showIn="@layout/app_bar_naloxone_dashboard"
     app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
 
@@ -24,29 +24,30 @@
         map:uiTiltGestures="true"
         map:uiZoomControls="false"
         map:uiZoomGestures="true"
-        tools:context="MapsActivity">
+        tools:context=".NalexoneDashboardActivity">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center|top"
+            android:gravity="start"
             android:id="@+id/request"
-            android:padding="10dp"
-            android:background="#1EFFFFFF"
-            android:gravity="center"
+            android:padding="@dimen/card_elevation"
+            android:background="#16287F81"
             android:orientation="vertical"
             >
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
-                android:layout_marginTop="@dimen/layout_padding"
-                android:layout_marginBottom="@dimen/layout_padding"
+                android:layout_margin="2dp"
+                android:layout_gravity="start"
+                android:gravity="center"
                 android:background="@drawable/button_bg_dark"
                 android:onClick="findSosRequests"
                 android:text="SOS Requests"
                 android:textColor="#ffff"
-                android:padding="2dp"
-                android:gravity="left"/>
+                android:padding="@dimen/card_elevation"
+                />
         </LinearLayout>
 
 

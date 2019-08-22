@@ -10,7 +10,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -30,19 +29,24 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.ttl.callforhelp.model.OpioidMarkers;
 import com.ttl.callforhelp.model.OpioidRequest;
 import com.ttl.callforhelp.model.User;
 import com.ttl.callforhelp.util.MyPreference;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -57,18 +61,19 @@ public class NalexoneDashboardActivity extends FragmentActivity
     User user;
 
     //Status
-    private String requestStatus = " Respose SOS ?";
-    private boolean isRequested = false;
+    String requestStatus = "Help others";
 
     //Map and Location
     private LocationTracker tracker;
     public Location myLocation;
+    private Marker myPosition;
     private GoogleMap mMap;
+    private List<OpioidMarkers> opioidUsers = new ArrayList<>();
+
 
     //Firebase and firestore
     FirebaseFirestore db = FirebaseFirestore.getInstance();
-    private Marker myPosition;
-
+    CollectionReference collectionRef = db.collection("user_request");
 
 
 
@@ -85,9 +90,13 @@ public class NalexoneDashboardActivity extends FragmentActivity
         //location
         locationListener();
 
+
         //user mngmnt
         myPreference = MyPreference.getInstance(this);
         user = myPreference.getCurrentUser();
+
+        //listen for db changes
+        this.listenForNewSosRequests(true);
 
 
         toolbar.setTitle(" Welcome " + user.getName());
@@ -225,7 +234,6 @@ public class NalexoneDashboardActivity extends FragmentActivity
 
     // View click methods
     public void findSosRequests(View view) {
-
         db.collection("user_request").document();
 
     }
@@ -233,58 +241,37 @@ public class NalexoneDashboardActivity extends FragmentActivity
 
     // Request and Response methods
 
-    private void listenForAcceptence(boolean b) {
-        final DocumentReference docRef = db.collection("user_request").document(user.getEmail());
-        docRef.addSnapshotListener(new EventListener<DocumentSnapshot>() {
-            @Override
-            public void onEvent(@Nullable DocumentSnapshot snapshot,
-                                @Nullable FirebaseFirestoreException e) {
-                if (e != null) {
-                    showLog("Listen failed.");
-                    return;
-                }
-                if (snapshot != null && snapshot.exists()) {
-                   showLog("Current data:");
-                   showToast("Changed");
-                   
-                } else {
-                    showLog("Current data: null");
-                }
-            }
-        });
+    private void listenForNewSosRequests(boolean b) {
+        DocumentReference docRef = collectionRef.document(user.getEmail());
+        collectionRef.whereEqualTo("isSolved",false)
+                .addSnapshotListener(new EventListener<QuerySnapshot>() {
+
+                    @Override
+                    public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
+                        if (e != null) {
+                            showLog(" Firebase Listen Failed");
+                            return;
+                        }
+
+                        for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+
+                            OpioidMarkers opioidMarkers = generateOpioidMarker(doc);
+
+
+                        }
+                    }
+                });
+
+
 
     }
 
+    private OpioidMarkers generateOpioidMarker(QueryDocumentSnapshot doc) {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        OpioidRequest opioidRequest = doc.toObject(OpioidRequest.class);
+        //Marker marker = new Marker();
+        return  null;
+    }
 
 
     @Override
