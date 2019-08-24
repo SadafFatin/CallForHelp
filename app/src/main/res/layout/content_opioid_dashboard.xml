@@ -26,22 +26,23 @@
         map:uiZoomGestures="true"
         tools:context=".OpioidDashboardActivity">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <LinearLayout android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center|top"
-            android:gravity="center"
+            android:gravity="center_vertical"
             android:id="@+id/request"
-            android:padding="10dp"
+            android:padding="@dimen/layout_padding"
             android:background="#1E51A6BB"
             android:orientation="horizontal"
-            android:weightSum="2">
+            android:weightSum="2"
+            xmlns:android="http://schemas.android.com/apk/res/android">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Name"
+                android:layout_marginRight="2dp"
+                android:text=""
                 android:gravity="left"
-                android:layout_weight="1"
+                android:layout_weight="1.6"
                 android:id="@+id/name"
                 android:textSize="16sp"
                 android:fontFamily="@font/robotolight"
@@ -49,15 +50,17 @@
 
             <Button
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginTop="@dimen/layout_padding"
-                android:layout_marginBottom="@dimen/layout_padding"
+                android:layout_height="33dp"
+                android:layout_marginLeft="2dp"
                 android:background="@drawable/button_bg_dark"
                 android:onClick="sendSosRequest"
                 android:text="SOS"
                 android:textColor="#ffff"
-                android:padding="2dp"/>
+                android:paddingLeft="@dimen/card_elevation"
+                android:paddingRight="@dimen/card_elevation"
+                android:textAllCaps="false"/>
         </LinearLayout>
+
 
 
     </fragment>

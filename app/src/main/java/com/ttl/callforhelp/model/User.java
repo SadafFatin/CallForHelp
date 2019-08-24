@@ -13,6 +13,9 @@ public class User {
         this.imageUri = imageUri;
     }
 
+    public User() {
+    }
+
     private  String type;
     private  String name;
     private String email;

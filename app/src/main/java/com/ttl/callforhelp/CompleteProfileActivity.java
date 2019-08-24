@@ -33,7 +33,6 @@ import com.ttl.callforhelp.util.ReferenceTerms;
 
 import java.io.IOException;
 
-
 import fr.quentinklein.slt.LocationTracker;
 import fr.quentinklein.slt.TrackerSettings;
 
@@ -102,13 +101,6 @@ public class CompleteProfileActivity extends AppCompatActivity {
         if (tracker != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    Activity#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for Activity#requestPermissions for more details.
                     return;
                 }
             }
@@ -233,9 +225,11 @@ public class CompleteProfileActivity extends AppCompatActivity {
                     myPreference.savePreferences(user);
                     if(user.getType().equals(ReferenceTerms.opioid)){
                         startActivity(new Intent(CompleteProfileActivity.this, OpioidDashboardActivity.class));
+                        finish();
                     }
                     else {
                         startActivity(new Intent(CompleteProfileActivity.this, NalexoneDashboardActivity.class));
+                        finish();
                     }
                 }
             });

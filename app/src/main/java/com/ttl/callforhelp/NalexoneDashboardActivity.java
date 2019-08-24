@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -25,6 +26,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -34,18 +36,22 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.shashank.sony.fancygifdialoglib.FancyGifDialog;
+import com.shashank.sony.fancygifdialoglib.FancyGifDialogListener;
 import com.ttl.callforhelp.model.OpioidMarkers;
 import com.ttl.callforhelp.model.OpioidRequest;
 import com.ttl.callforhelp.model.User;
+import com.ttl.callforhelp.model.UserLocation;
+import com.ttl.callforhelp.util.MyInfoWindowAdapter;
 import com.ttl.callforhelp.util.MyPreference;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -54,7 +60,7 @@ import fr.quentinklein.slt.LocationTracker;
 import fr.quentinklein.slt.TrackerSettings;
 
 public class NalexoneDashboardActivity extends FragmentActivity
-        implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
+        implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback ,GoogleMap.OnInfoWindowClickListener{
 
     //User mngmnt
     MyPreference myPreference;
@@ -62,21 +68,29 @@ public class NalexoneDashboardActivity extends FragmentActivity
 
     //Status
     String requestStatus = "Help others";
+    boolean isAcceptedRequest = false;
 
-    //Map and Location
+    //Map and UserLocation
     private LocationTracker tracker;
     public Location myLocation;
     private Marker myPosition;
     private GoogleMap mMap;
-    private List<OpioidMarkers> opioidUsers = new ArrayList<>();
 
 
     //Firebase and firestore
     FirebaseFirestore db = FirebaseFirestore.getInstance();
-    CollectionReference collectionRef = db.collection("user_request");
+    CollectionReference user_requestRef = db.collection("user_request");
+    CollectionReference locationRef = db.collection("location");
 
 
+    //Opioid Request
+    private List<OpioidMarkers> oldOpioidMarkers;
+    private List<OpioidMarkers> currentOpioidMarkers;
 
+
+    //view
+    TextView statView;
+    FancyGifDialog.Builder dailogBuilder;
 
 
     @Override
@@ -86,6 +100,7 @@ public class NalexoneDashboardActivity extends FragmentActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_naloxone_dashboard);
         Toolbar toolbar = findViewById(R.id.toolbar);
+        statView = findViewById(R.id.stat);
 
         //location
         locationListener();
@@ -96,8 +111,12 @@ public class NalexoneDashboardActivity extends FragmentActivity
         user = myPreference.getCurrentUser();
 
         //listen for db changes
+        oldOpioidMarkers = new ArrayList<>();
+        currentOpioidMarkers = new ArrayList<>();
         this.listenForNewSosRequests(true);
 
+        //view and others
+        dailogBuilder = new FancyGifDialog.Builder(this);
 
         toolbar.setTitle(" Welcome " + user.getName());
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -148,6 +167,9 @@ public class NalexoneDashboardActivity extends FragmentActivity
         mMap.getUiSettings().setZoomGesturesEnabled(true);
         mMap.getUiSettings().setAllGesturesEnabled(true);
         mMap.getUiSettings().setMapToolbarEnabled(false);
+        mMap.setOnInfoWindowClickListener(this);
+        mMap.setInfoWindowAdapter(new MyInfoWindowAdapter(NalexoneDashboardActivity.this));
+
         addMyMarker();
     }
 
@@ -163,10 +185,16 @@ public class NalexoneDashboardActivity extends FragmentActivity
                 mMap.setMyLocationEnabled(true);
                 mMap.getUiSettings().setMyLocationButtonEnabled(true);
             }
+            if(myPosition!=null){
+                myPosition.remove();
+            }
             myPosition = mMap.addMarker(new MarkerOptions()
                     .position(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()))
+                    .icon(BitmapDescriptorFactory
+                            .defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
                     .title(" Me ").snippet(requestStatus));
             myPosition.showInfoWindow();
+            myPosition.setTag(user.getEmail());
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(myPosition.getPosition(), 16));
         } else {
             showSnackBar("Sorry coundn't find your location");
@@ -174,6 +202,14 @@ public class NalexoneDashboardActivity extends FragmentActivity
 
     }
 
+    @Override
+    public void onInfoWindowClick(Marker marker) {
+        if(!marker.getTag().equals(user.getEmail())){
+            OpioidMarkers opioidMarkers = (OpioidMarkers) marker.getTag();
+            showDailog(opioidMarkers);
+        }
+
+    }
 
     //location tracking methods
     public void locationOn(Location location) {
@@ -182,11 +218,14 @@ public class NalexoneDashboardActivity extends FragmentActivity
         if(mMap!=null){
             addMyMarker();
         }
+        if(isAcceptedRequest){
+            UserLocation currentLoc = new UserLocation(location.getLatitude(),location.getLongitude());
+            locationRef.document(user.getEmail()).set(currentLoc);
+        }
 
 
     }
-
-    void locationListener() {
+    public void locationListener() {
         TrackerSettings settings =
                 new TrackerSettings()
                         .setUseGPS(true)
@@ -196,7 +235,7 @@ public class NalexoneDashboardActivity extends FragmentActivity
                         .setMetersBetweenUpdates(1);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            showSnackBar("Location Permission required to operate");
+            showSnackBar("UserLocation Permission required to operate");
         } else {
             tracker = new LocationTracker(getApplicationContext(), settings) {
                 @Override
@@ -216,7 +255,77 @@ public class NalexoneDashboardActivity extends FragmentActivity
     }
 
 
+
+
+    // Request and Response methods
+    private void listenForNewSosRequests(boolean b) {
+        findOutAllRequest();
+
+    }
+
+    private void findOutAllRequest(){
+        user_requestRef.whereEqualTo("isSolved",false).addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
+                        if (e != null) {
+                            showLog(" Firebase Listen Failed");
+                            return;
+                        }
+                        int count =0;
+                        if(mMap!=null){
+                            for(OpioidMarkers opioidMarkers: currentOpioidMarkers){
+                                opioidMarkers.getMarker().remove();
+                            }
+                        }
+                        count = currentOpioidMarkers.size();
+                        currentOpioidMarkers.clear();
+                        for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                            OpioidMarkers opioidMarker = generateOpioidMarker(doc);
+                                currentOpioidMarkers.add(opioidMarker);
+                        }
+
+                        int newCount = currentOpioidMarkers.size() - count;
+                        if(newCount>0){
+                            if(newCount!=currentOpioidMarkers.size()){
+                                statView.setText("Requesting Opioid "+currentOpioidMarkers.size()+" new "+newCount);
+                                playNewRequestsSound();
+                            }
+                            else {
+                                statView.setText("Requesting Opioid "+currentOpioidMarkers.size());
+                            }
+                        }
+                        else{
+                            statView.setText("Requesting Opioid "+currentOpioidMarkers.size());
+                        }
+
+
+
+                    }
+                });
+
+    }
+
+    private OpioidMarkers generateOpioidMarker(QueryDocumentSnapshot doc) {
+
+        OpioidRequest opioidRequest = doc.toObject(OpioidRequest.class);
+        Marker marker = mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(opioidRequest.getLatitude(), opioidRequest.getLongitude()))
+                .title(opioidRequest.getUser().getName()).snippet("is requesting"));
+
+        marker.showInfoWindow();
+
+        OpioidMarkers opioidMarkers = new OpioidMarkers(opioidRequest,marker);
+        marker.setTag(opioidMarkers);
+        return opioidMarkers;
+
+    }
+
+
+
     // my custom methods
+    private void playNewRequestsSound() {
+
+    }
     private void showSnackBar(String message) {
         View v = findViewById(R.id.fab);
         Snackbar.make(v, message, Snackbar.LENGTH_LONG)
@@ -228,49 +337,56 @@ public class NalexoneDashboardActivity extends FragmentActivity
     }
 
     private void showToast(String s) {
-        Toast.makeText(getApplicationContext(), s, Toast.LENGTH_LONG).show();
+        Toast.makeText(NalexoneDashboardActivity.this, s, Toast.LENGTH_LONG).show();
+    }
+
+    private float getDistance(Location destination){
+        return  (myLocation.distanceTo(destination)/1000);
     }
 
 
     // View click methods
     public void findSosRequests(View view) {
-        db.collection("user_request").document();
+        findOutAllRequest();
 
     }
 
+    private void showDailog(final OpioidMarkers opioidMarkers) {
+        Location dest = new Location("");
+        dest.setLongitude(opioidMarkers.getRequest().getLongitude());
+        dest.setLatitude(opioidMarkers.getRequest().getLatitude());
 
-    // Request and Response methods
+        final HashMap<String,Object> map = new HashMap<>();
+        map.put("acceptedUserId", user.getEmail());
+        map.put("isSolved",true);
 
-    private void listenForNewSosRequests(boolean b) {
-        DocumentReference docRef = collectionRef.document(user.getEmail());
-        collectionRef.whereEqualTo("isSolved",false)
-                .addSnapshotListener(new EventListener<QuerySnapshot>() {
-
+        dailogBuilder.setTitle(" Want to Help "+opioidMarkers.getRequest().getUser().getName())
+                .setMessage(" He is "+ getDistance(dest)+" km away from you and your naloxone is 5km away from you. ")
+                .setNegativeBtnText("Cancel")
+                .setPositiveBtnBackground("#FF4081")
+                .setPositiveBtnText("Ok")
+                .setNegativeBtnBackground("#FFA9A7A8")
+                .setGifResource(R.drawable.help)   //Pass your Gif here
+                .isCancellable(true)
+                .OnPositiveClicked(new FancyGifDialogListener() {
                     @Override
-                    public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
-                        if (e != null) {
-                            showLog(" Firebase Listen Failed");
-                            return;
-                        }
-
-                        for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-
-                            OpioidMarkers opioidMarkers = generateOpioidMarker(doc);
-
-
-                        }
+                    public void OnClick() {
+                       user_requestRef.document(opioidMarkers.getRequest().getUser().getEmail()).update(map);
+                       isAcceptedRequest = true;
+                       UserLocation currentLoc = new UserLocation(myLocation.getLatitude(),myLocation.getLongitude());
+                       locationRef.document(user.getEmail()).set(currentLoc);
                     }
-                });
+                })
+                .OnNegativeClicked(new FancyGifDialogListener() {
+                    @Override
+                    public void OnClick() {
+                        Toast.makeText(NalexoneDashboardActivity.this,"Cancel",Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .build();
 
 
 
-    }
-
-    private OpioidMarkers generateOpioidMarker(QueryDocumentSnapshot doc) {
-
-        OpioidRequest opioidRequest = doc.toObject(OpioidRequest.class);
-        //Marker marker = new Marker();
-        return  null;
     }
 
 
@@ -334,8 +450,6 @@ public class NalexoneDashboardActivity extends FragmentActivity
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
-
-
 
 
 

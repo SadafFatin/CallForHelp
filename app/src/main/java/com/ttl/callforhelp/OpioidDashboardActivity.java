@@ -26,6 +26,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -41,11 +42,12 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.shashank.sony.fancygifdialoglib.FancyGifDialog;
+import com.shashank.sony.fancygifdialoglib.FancyGifDialogListener;
 import com.ttl.callforhelp.model.OpioidRequest;
 import com.ttl.callforhelp.model.User;
+import com.ttl.callforhelp.model.UserLocation;
 import com.ttl.callforhelp.util.MyPreference;
-
-import org.imperiumlabs.geofirestore.GeoFirestore;
 
 import javax.annotation.Nullable;
 
@@ -63,24 +65,25 @@ public class OpioidDashboardActivity extends FragmentActivity
     private String requestStatus = " Need naloxone ?";
     private boolean isRequested = false;
 
-    //Map and Location
+    //Map and UserLocation
     private LocationTracker tracker;
     public Location myLocation;
     private GoogleMap mMap;
+    private Marker myPosition;
+    private Marker naloxoneProviderMarker;
 
     //Firebase and firestore
     FirebaseFirestore db = FirebaseFirestore.getInstance();
-    private Marker myPosition;
+    CollectionReference user_request = db.collection("user_request");
+    CollectionReference locationRef = db.collection("location");
 
 
 
-
-
+    //views
+    FancyGifDialog.Builder dailogBuilder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_opioid_dashboard);
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -92,7 +95,7 @@ public class OpioidDashboardActivity extends FragmentActivity
         myPreference = MyPreference.getInstance(this);
         user = myPreference.getCurrentUser();
 
-
+        dailogBuilder = new FancyGifDialog.Builder(this);
         toolbar.setTitle(" Welcome " + user.getName());
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -113,7 +116,6 @@ public class OpioidDashboardActivity extends FragmentActivity
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
     }
-
 
     @Override
     protected void onResume() {
@@ -157,10 +159,17 @@ public class OpioidDashboardActivity extends FragmentActivity
                 mMap.setMyLocationEnabled(true);
                 mMap.getUiSettings().setMyLocationButtonEnabled(true);
             }
+
+            if(myPosition!=null){
+                myPosition.remove();
+            }
             myPosition = mMap.addMarker(new MarkerOptions()
                     .position(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()))
+                    .icon(BitmapDescriptorFactory
+                            .defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
                     .title(" Me ").snippet(requestStatus));
             myPosition.showInfoWindow();
+
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(myPosition.getPosition(), 16));
         } else {
             showSnackBar("Sorry coundn't find your location");
@@ -168,6 +177,18 @@ public class OpioidDashboardActivity extends FragmentActivity
 
     }
 
+    private void addMarker(Location loc) {
+
+            naloxoneProviderMarker = mMap.addMarker(new MarkerOptions()
+                    .position(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()))
+                    .icon(BitmapDescriptorFactory
+                            .defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                    .title(" Naloxone Provider ").snippet("on his way"));
+            naloxoneProviderMarker.showInfoWindow();
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(myPosition.getPosition(), 16));
+
+
+    }
 
     //location tracking methods
     public void locationOn(Location location) {
@@ -179,7 +200,6 @@ public class OpioidDashboardActivity extends FragmentActivity
 
 
     }
-
     void locationListener() {
         TrackerSettings settings =
                 new TrackerSettings()
@@ -190,7 +210,7 @@ public class OpioidDashboardActivity extends FragmentActivity
                         .setMetersBetweenUpdates(1);
 
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            showSnackBar("Location Permission required to operate");
+            showSnackBar("UserLocation Permission required to operate");
         } else {
             tracker = new LocationTracker(getApplicationContext(), settings) {
                 @Override
@@ -210,29 +230,11 @@ public class OpioidDashboardActivity extends FragmentActivity
     }
 
 
-    // my custom methods
-    private void showSnackBar(String message) {
-        View v = findViewById(R.id.fab);
-        Snackbar.make(v, message, Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show();
-    }
-
-    private void showLog(String msg) {
-        Log.d(" Custom Log Msg ", msg);
-    }
-
-    private void showToast(String s) {
-        Toast.makeText(getApplicationContext(), s, Toast.LENGTH_LONG).show();
-    }
-
-
     // View click methods
     public void sendSosRequest(final View view) {
         final Button b = (Button) view;
-
         if(isRequested){
-
-            db.collection("user_request").document(user.getEmail()).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+            user_request.document(user.getEmail()).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
                 @Override
                 public void onSuccess(Void aVoid) {
                     b.setText("SOS");
@@ -251,7 +253,7 @@ public class OpioidDashboardActivity extends FragmentActivity
             }
             else {
                 OpioidRequest userRequest = new OpioidRequest(user,myLocation.getLatitude(),myLocation.getLongitude());
-                db.collection("user_request").document(user.getEmail()).set(userRequest).addOnSuccessListener(new OnSuccessListener<Void>() {
+                user_request.document(user.getEmail()).set(userRequest).addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
                         showSnackBar(" Your SOS request has been sent successfully");
@@ -277,19 +279,59 @@ public class OpioidDashboardActivity extends FragmentActivity
         final DocumentReference docRef = db.collection("user_request").document(user.getEmail());
         docRef.addSnapshotListener(new EventListener<DocumentSnapshot>() {
             @Override
-            public void onEvent(@Nullable DocumentSnapshot snapshot,
-                                @Nullable FirebaseFirestoreException e) {
+            public void onEvent(@Nullable DocumentSnapshot snapshot , @Nullable FirebaseFirestoreException e) {
+
                 if (e != null) {
                     showLog("Listen failed.");
                     return;
                 }
                 if (snapshot != null && snapshot.exists()) {
-                   showLog("Current data:");
-                   showToast("Changed");
-
+                    showLog("Current data:");
+                    showToast("Changed");
+                    OpioidRequest opioidRequest = snapshot.toObject(OpioidRequest.class);
+                    if(opioidRequest.getSolved()){
+                        showAcceptanceDailog(opioidRequest);
+                    }
                 } else {
                     showLog("Current data: null");
                 }
+
+            }
+        });
+
+
+    }
+
+    private void showAcceptanceDailog(OpioidRequest opioidRequest) {
+
+        locationRef.document(opioidRequest.acceptedUserId).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                final UserLocation  naloxoneProvider = documentSnapshot.toObject(UserLocation.class);
+                dailogBuilder.setTitle(" A naloxone provider has answered")
+                        .setMessage(" He is 2"+" km away from you.")
+                        .setNegativeBtnText("Cancel")
+                        .setPositiveBtnBackground("#FF4081")
+                        .setPositiveBtnText("Ok")
+                        .setNegativeBtnBackground("#FFA9A7A8")
+                        .setGifResource(R.drawable.help)   //Pass your Gif here
+                        .isCancellable(true)
+                        .OnPositiveClicked(new FancyGifDialogListener() {
+                            @Override
+                            public void OnClick() {
+                                Location location = new Location("");
+                                location.setLatitude(naloxoneProvider.getLat());
+                                location.setLongitude(naloxoneProvider.getLon());
+                                addMarker(location);
+                            }
+                        })
+                        .OnNegativeClicked(new FancyGifDialogListener() {
+                            @Override
+                            public void OnClick() {
+
+                            }
+                        }).build();
+
             }
         });
 
@@ -302,29 +344,18 @@ public class OpioidDashboardActivity extends FragmentActivity
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    // my custom methods
+    private void showSnackBar(String message) {
+        View v = findViewById(R.id.fab);
+        Snackbar.make(v, message, Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
+    }
+    private void showLog(String msg) {
+        Log.d(" Custom Log Msg ", msg);
+    }
+    private void showToast(String s) {
+        Toast.makeText(getApplicationContext(), s, Toast.LENGTH_LONG).show();
+    }
 
 
     @Override

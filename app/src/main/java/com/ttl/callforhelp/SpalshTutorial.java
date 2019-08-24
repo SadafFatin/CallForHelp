@@ -2,11 +2,12 @@ package com.ttl.callforhelp;
 
 import android.Manifest;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -15,11 +16,15 @@ import com.firebase.ui.auth.IdpResponse;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.smarteist.autoimageslider.SliderLayout;
+import com.smarteist.autoimageslider.IndicatorAnimations;
+import com.smarteist.autoimageslider.IndicatorView.draw.controller.DrawController;
+import com.smarteist.autoimageslider.SliderAnimations;
 import com.smarteist.autoimageslider.SliderView;
 import com.ttl.callforhelp.util.MyPreference;
 import com.ttl.callforhelp.util.PermissionUtils;
 import com.ttl.callforhelp.util.ReferenceTerms;
+import com.ttl.callforhelp.util.SliderAdapterExample;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,7 +33,7 @@ import java.util.List;
 public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback,
         PermissionUtils.PermissionResultCallback {
 
-    SliderLayout sliderLayout;
+    //SliderLayout sliderLayout;
     List<AuthUI.IdpConfig> providers = Arrays.asList(
             new AuthUI.IdpConfig.EmailBuilder().build());
 
@@ -40,6 +45,7 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
     PermissionUtils permissionUtils;
     boolean isPermissionGranted;
     String address = "";
+    private SliderView sliderView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,24 +65,27 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
             if( myPreference.getIsProfileComplete()){
                 if(myPreference.getUserType().equals(ReferenceTerms.naloxone)){
                     startActivity(new Intent(this, NalexoneDashboardActivity.class));
+                    finish();
                 }
                 else{
                     startActivity(new Intent(this, OpioidDashboardActivity.class));
+                    finish();
                 }
 
             }
             else {
                 startActivity(new Intent(this, CompleteProfileActivity.class));
+                finish();
             }
 
         }
 
 
-        sliderLayout = findViewById(R.id.imageSlider);
-        sliderLayout.setIndicatorAnimation(SliderLayout.Animations.FILL); //set indicator animation by using SliderLayout.Animations. :WORM or THIN_WORM or COLOR or DROP or FILL or NONE or SCALE or SCALE_DOWN or SLIDE and SWAP!!
-        sliderLayout.setScrollTimeInSec(7); //set scroll delay in seconds :
+        /*sliderLayout = findViewById(R.id.imageSlider);
+        sliderLayout.setIndicatorAnimation(SliderLayout.Animations.SLIDE); //set indicator animation by using SliderLayout.Animations. :WORM or THIN_WORM or COLOR or DROP or FILL or NONE or SCALE or SCALE_DOWN or SLIDE and SWAP!!
+        sliderLayout.setScrollTimeInSec(8); //set scroll delay in seconds :*/
 
-
+        sliderView = findViewById(R.id.imageSlider);
         setSliderViews();
 
 
@@ -115,6 +124,7 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
                 setUserPreferences(user);
                 if (permissionUtils.isPermissionGranted(permissions)) {
                     startActivity(new Intent(SpalshTutorial.this, CompleteProfileActivity.class));
+                    finish();
                 } else {
                     showToast("You must turn on location and provide permission");
                 }
@@ -146,24 +156,46 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
 
 
     private void setSliderViews() {
-        for (int i = 0; i < 4; i++) {
+        final SliderAdapterExample adapter = new SliderAdapterExample(this);
+        //adapter.setCount(5);
+
+        sliderView.setSliderAdapter(adapter);
+        sliderView.setIndicatorAnimation(IndicatorAnimations.SLIDE); //set indicator animation by using SliderLayout.IndicatorAnimations. :WORM or THIN_WORM or COLOR or DROP or FILL or NONE or SCALE or SCALE_DOWN or SLIDE and SWAP!!
+        sliderView.setSliderTransformAnimation(SliderAnimations.SIMPLETRANSFORMATION);
+        sliderView.setAutoCycleDirection(SliderView.AUTO_CYCLE_DIRECTION_RIGHT);
+        sliderView.setIndicatorSelectedColor(Color.WHITE);
+        sliderView.setIndicatorUnselectedColor(Color.GRAY);
+        sliderView.startAutoCycle();
+
+        sliderView.setOnIndicatorClickListener(new DrawController.ClickListener() {
+            @Override
+            public void onIndicatorClicked(int position) {
+                sliderView.setCurrentPagePosition(position);
+            }
+        });
+
+        /*for (int i = 0; i < 5; i++) {
             SliderView sliderView = new SliderView(this);
             switch (i) {
-                case 0:
+                case 4:
                     sliderView.setImageDrawable(R.drawable.opioid_epidemic);
                     sliderView.setDescription("The user epidemic or user crisis is a term that generally refers to the rapid increase in the use of prescription and nonprescription user drugs.");
                     break;
                 case 1:
+                    sliderView.setImageDrawable(R.drawable.opioid_signs);
+                    sliderView.setDescription("Signs of opioid overdose.");
+                    break;
+                case 2:
                     sliderView.setImageDrawable(R.drawable.opioid_stats);
                     sliderView.setDescription("Every day, more than 130 people in the United States die after overdosing on opioids.");
                     break;
-                case 2:
-                    sliderView.setImageDrawable(R.drawable.naloxone);
+                case 3:
+                    sliderView.setImageDrawable(R.drawable.reversing_overdose_naloxone);
                     sliderView.setDescription("Naloxone may be combined with an user (in the same pill) to decrease the risk of user misuse.");
                     break;
-                case 3:
+                case 0:
                     sliderView.setImageDrawable(R.drawable.opioids_map);
-                    sliderView.setDescription("The overall objective of the project is to make naloxone more widely available for user drug users.");
+                    sliderView.setDescription("");
                     break;
 
 
@@ -173,14 +205,14 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
             sliderView.setDescriptionTextSize(18);
             sliderView.setDescriptionTextColor(SpalshTutorial.this.getResources().getColor(R.color.colorDescription));
             sliderLayout.addSliderView(sliderView);
-        }
+        }*/
     }
 
 
     @Override
     public void PermissionGranted(int request_code) {
         isPermissionGranted = true;
-        showToast(""+isPermissionGranted);
+        //showToast(""+isPermissionGranted);
     }
 
     @Override

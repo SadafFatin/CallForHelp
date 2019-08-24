@@ -1,100 +1,105 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".SpalshTutorial"
     android:orientation="vertical"
-    android:padding="@dimen/layout_padding"
-    >
+    tools:context=".SpalshTutorial">
+
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="@dimen/card_corner"
-        android:elevation="@dimen/card_elevation">
+        android:elevation="@dimen/card_elevation"
+        app:cardCornerRadius="@dimen/card_corner">
 
-        <LinearLayout
+        <com.smarteist.autoimageslider.SliderView
+            android:id="@+id/imageSlider"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="@dimen/layout_padding"
-            android:orientation="vertical"
-            android:gravity="center_horizontal">
-
-            <com.smarteist.autoimageslider.SliderLayout
-                android:id="@+id/imageSlider"
-                android:layout_width="match_parent"
-                android:layout_height="440dp"/>
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Register As"
-                android:gravity="center_horizontal"
-                android:textSize="22sp"
-                android:layout_margin="@dimen/layout_padding"/>
-
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:weightSum="2"
-                android:orientation="horizontal"
-                android:gravity="center_horizontal"
-                android:padding="@dimen/card_elevation"
-                >
-                <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:background="@drawable/button_bg_light"
-                    android:text="@string/naloxone_user"
-                    android:textColor="#ffff"
-                    android:layout_marginTop="@dimen/layout_padding"
-                    android:onClick="naloxoneSignUp"
-                    android:layout_weight=".7"
-                    android:layout_margin="2dp"
-                    />
-
-                <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:background="@drawable/button_bg_accent"
-                    android:text="@string/opioid_user"
-                    android:textColor="#ffff"
-                    android:layout_marginTop="@dimen/layout_padding"
-                    android:onClick="opioidSignUp"
-                    android:layout_weight=".7"
-                    android:layout_margin="2dp"/>
-
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Login"
-                android:gravity="center_horizontal"
-                android:textSize="22sp"
-                android:layout_margin="@dimen/layout_padding"/>
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginTop="@dimen/layout_padding"
-                android:layout_marginBottom="@dimen/layout_padding"
-                android:background="@drawable/button_bg_dark"
-                android:onClick="login"
-                android:text="@string/login"
-                android:textColor="#ffff"
-                android:layout_margin="2dp"/>
-        </LinearLayout>
+            android:layout_height="500dp"
+            app:sliderAnimationDuration="1000"
+            app:sliderAutoCycleEnabled="false"
+            app:sliderCircularHandlerEnabled="true"
+            app:sliderIndicatorAnimationDuration="600"
+            app:sliderIndicatorGravity="center_horizontal|bottom"
+            app:sliderIndicatorMargin="15dp"
+            app:sliderIndicatorOrientation="horizontal"
+            app:sliderIndicatorPadding="3dp"
+            app:sliderIndicatorRadius="2dp"
+            app:sliderIndicatorSelectedColor="#5A5A5A"
+            app:sliderIndicatorUnselectedColor="#FFF"
+            app:sliderScrollTimeInSec="1"
+            app:sliderStartAutoCycle="true" />
     </androidx.cardview.widget.CardView>
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/card_elevation"
+        android:gravity="center_horizontal"
+        android:text="Register As"
+        android:textSize="22sp" />
 
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="horizontal"
+        android:padding="@dimen/card_elevation"
+        android:weightSum="2">
 
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_margin="2dp"
+            android:layout_marginTop="@dimen/layout_padding"
+            android:layout_weight=".7"
+            android:background="@drawable/button_bg_light"
+            android:onClick="naloxoneSignUp"
+            android:text="@string/naloxone_user"
+            android:textColor="#ffff" />
 
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_margin="2dp"
+            android:layout_marginTop="@dimen/layout_padding"
+            android:layout_weight=".7"
+            android:background="@drawable/button_bg_accent"
+            android:onClick="opioidSignUp"
+            android:text="@string/opioid_user"
+            android:textColor="#ffff" />
+
+    </LinearLayout>
 
 
 
 </LinearLayout>
+
+
+
+    <!--<com.smarteist.autoimageslider.SliderLayout
+        android:id="@+id/imageSlider"
+        android:layout_width="match_parent"
+        android:layout_height="480dp"/>-->
+
+    <!--<TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Login"
+            android:gravity="center_horizontal"
+            android:textSize="22sp"
+            android:layout_margin="@dimen/layout_padding"/>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginTop="@dimen/layout_padding"
+            android:layout_marginBottom="@dimen/layout_padding"
+            android:background="@drawable/button_bg_dark"
+            android:onClick="login"
+            android:text="@string/login"
+            android:textColor="#ffff"
+            android:layout_margin="2dp"/>-->
