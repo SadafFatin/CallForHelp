@@ -11,17 +11,23 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentActivity;
 
+import com.bumptech.glide.Glide;
 import com.firebase.ui.auth.AuthUI;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -81,6 +87,8 @@ public class OpioidDashboardActivity extends FragmentActivity
 
     //views
     FancyGifDialog.Builder dailogBuilder;
+    private FusedLocationProviderClient fusedLocationClient;
+    private boolean isAnswered = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,6 +118,18 @@ public class OpioidDashboardActivity extends FragmentActivity
         });
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
+
+        View v = View.inflate(this,R.layout.nav_header_opioid_dashboard,navigationView);
+
+        TextView email = v.findViewById(R.id.email);
+        email.setText(user.getEmail());
+
+        TextView address = v.findViewById(R.id.subtitle_view);
+        address.setText(user.getAddress());
+
+        ImageView imageView =  v.findViewById(R.id.imageView);
+        Glide.with(this).load(myPreference.getUserImgUri()).into(imageView);
+
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
@@ -201,6 +221,20 @@ public class OpioidDashboardActivity extends FragmentActivity
 
     }
     void locationListener() {
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            showToast("You must provide location permission to this app");
+        } else {
+            fusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                        @Override
+                        public void onSuccess(Location location) {
+                            if (location != null) {
+                                locationOn(location);
+                            }
+                        }
+                    });
+        }
         TrackerSettings settings =
                 new TrackerSettings()
                         .setUseGPS(true)
@@ -292,6 +326,13 @@ public class OpioidDashboardActivity extends FragmentActivity
                     if(opioidRequest.getSolved()){
                         showAcceptanceDailog(opioidRequest);
                     }
+                    else {
+                        if(isAnswered){
+                            showSnackBar("Your request was cancelled");
+                            isAnswered = false;
+                        }
+
+                    }
                 } else {
                     showLog("Current data: null");
                 }
@@ -302,12 +343,11 @@ public class OpioidDashboardActivity extends FragmentActivity
 
     }
 
-    private void showAcceptanceDailog(OpioidRequest opioidRequest) {
+    private void showAcceptanceDailog(final OpioidRequest opioidRequest) {
 
         locationRef.document(opioidRequest.acceptedUserId).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
-                final UserLocation  naloxoneProvider = documentSnapshot.toObject(UserLocation.class);
                 dailogBuilder.setTitle(" A naloxone provider has answered")
                         .setMessage(" He is 2"+" km away from you.")
                         .setNegativeBtnText("Cancel")
@@ -319,10 +359,8 @@ public class OpioidDashboardActivity extends FragmentActivity
                         .OnPositiveClicked(new FancyGifDialogListener() {
                             @Override
                             public void OnClick() {
-                                Location location = new Location("");
-                                location.setLatitude(naloxoneProvider.getLat());
-                                location.setLongitude(naloxoneProvider.getLon());
-                                addMarker(location);
+                                isAnswered = true;
+                                listenForNaloxoneLocChange(opioidRequest.acceptedUserId);
                             }
                         })
                         .OnNegativeClicked(new FancyGifDialogListener() {
@@ -337,11 +375,20 @@ public class OpioidDashboardActivity extends FragmentActivity
 
     }
 
+    private void listenForNaloxoneLocChange(String acceptedUserId) {
+        locationRef.document(acceptedUserId).addSnapshotListener(new EventListener<DocumentSnapshot>() {
+            @Override
+            public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException e) {
+                 UserLocation naloxoneProvider = documentSnapshot.toObject(UserLocation.class);
+                 Location location = new Location("");
+                 location.setLatitude(naloxoneProvider.getLat());
+                 location.setLongitude(naloxoneProvider.getLon());
+                 addMarker(location);
 
+            }
+        });
 
-
-
-
+    }
 
 
     // my custom methods

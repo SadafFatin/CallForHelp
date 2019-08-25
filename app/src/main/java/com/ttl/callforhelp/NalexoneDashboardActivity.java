@@ -1,15 +1,24 @@
 package com.ttl.callforhelp;
 
 import android.Manifest;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.media.MediaPlayer;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,11 +26,14 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentActivity;
 
+import com.bumptech.glide.Glide;
 import com.firebase.ui.auth.AuthUI;
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -60,7 +72,7 @@ import fr.quentinklein.slt.LocationTracker;
 import fr.quentinklein.slt.TrackerSettings;
 
 public class NalexoneDashboardActivity extends FragmentActivity
-        implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback ,GoogleMap.OnInfoWindowClickListener{
+        implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback, GoogleMap.OnInfoWindowClickListener {
 
     //User mngmnt
     MyPreference myPreference;
@@ -91,6 +103,9 @@ public class NalexoneDashboardActivity extends FragmentActivity
     //view
     TextView statView;
     FancyGifDialog.Builder dailogBuilder;
+    private FusedLocationProviderClient fusedLocationClient;
+    private Button cancelButton;
+    private String helpedUseremail = null;
 
 
     @Override
@@ -117,7 +132,7 @@ public class NalexoneDashboardActivity extends FragmentActivity
 
         //view and others
         dailogBuilder = new FancyGifDialog.Builder(this);
-
+        cancelButton = findViewById(R.id.respCancel);
         toolbar.setTitle(" Welcome " + user.getName());
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -132,6 +147,19 @@ public class NalexoneDashboardActivity extends FragmentActivity
         });
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
+
+
+        View v = View.inflate(this,R.layout.nav_header_opioid_dashboard,navigationView);
+
+        TextView email = v.findViewById(R.id.email);
+        email.setText(user.getEmail());
+
+        TextView address = v.findViewById(R.id.subtitle_view);
+        address.setText(user.getAddress());
+
+        ImageView imageView =  v.findViewById(R.id.imageView);
+        Glide.with(this).load(myPreference.getUserImgUri()).into(imageView);
+
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
@@ -169,7 +197,6 @@ public class NalexoneDashboardActivity extends FragmentActivity
         mMap.getUiSettings().setMapToolbarEnabled(false);
         mMap.setOnInfoWindowClickListener(this);
         mMap.setInfoWindowAdapter(new MyInfoWindowAdapter(NalexoneDashboardActivity.this));
-
         addMyMarker();
     }
 
@@ -185,7 +212,7 @@ public class NalexoneDashboardActivity extends FragmentActivity
                 mMap.setMyLocationEnabled(true);
                 mMap.getUiSettings().setMyLocationButtonEnabled(true);
             }
-            if(myPosition!=null){
+            if (myPosition != null) {
                 myPosition.remove();
             }
             myPosition = mMap.addMarker(new MarkerOptions()
@@ -201,12 +228,14 @@ public class NalexoneDashboardActivity extends FragmentActivity
         }
 
     }
-
     @Override
     public void onInfoWindowClick(Marker marker) {
-        if(!marker.getTag().equals(user.getEmail())){
+        if (!marker.getTag().equals(user.getEmail()) && !isAcceptedRequest) {
             OpioidMarkers opioidMarkers = (OpioidMarkers) marker.getTag();
             showDailog(opioidMarkers);
+        }
+        else {
+            showToast("You are already helping someone");
         }
 
     }
@@ -215,11 +244,11 @@ public class NalexoneDashboardActivity extends FragmentActivity
     public void locationOn(Location location) {
         this.myLocation = location;
         showLog("found" + location.getLatitude() + location.getLongitude());
-        if(mMap!=null){
+        if (mMap != null) {
             addMyMarker();
         }
-        if(isAcceptedRequest){
-            UserLocation currentLoc = new UserLocation(location.getLatitude(),location.getLongitude());
+        if (isAcceptedRequest) {
+            UserLocation currentLoc = new UserLocation(location.getLatitude(), location.getLongitude());
             locationRef.document(user.getEmail()).set(currentLoc);
         }
 
@@ -245,6 +274,7 @@ public class NalexoneDashboardActivity extends FragmentActivity
                         locationOn(location);
                     }
                 }
+
                 @Override
                 public void onTimeout() {
                 }
@@ -255,58 +285,48 @@ public class NalexoneDashboardActivity extends FragmentActivity
     }
 
 
-
-
     // Request and Response methods
-    private void listenForNewSosRequests(boolean b) {
-        findOutAllRequest();
-
-    }
-
-    private void findOutAllRequest(){
-        user_requestRef.whereEqualTo("isSolved",false).addSnapshotListener(new EventListener<QuerySnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
-                        if (e != null) {
-                            showLog(" Firebase Listen Failed");
-                            return;
-                        }
-                        int count =0;
-                        if(mMap!=null){
-                            for(OpioidMarkers opioidMarkers: currentOpioidMarkers){
-                                opioidMarkers.getMarker().remove();
-                            }
-                        }
-                        count = currentOpioidMarkers.size();
-                        currentOpioidMarkers.clear();
-                        for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                            OpioidMarkers opioidMarker = generateOpioidMarker(doc);
-                                currentOpioidMarkers.add(opioidMarker);
-                        }
-
-                        int newCount = currentOpioidMarkers.size() - count;
-                        if(newCount>0){
-                            if(newCount!=currentOpioidMarkers.size()){
-                                statView.setText("Requesting Opioid "+currentOpioidMarkers.size()+" new "+newCount);
-                                playNewRequestsSound();
-                            }
-                            else {
-                                statView.setText("Requesting Opioid "+currentOpioidMarkers.size());
-                            }
-                        }
-                        else{
-                            statView.setText("Requesting Opioid "+currentOpioidMarkers.size());
-                        }
-
-
-
+    private void listenForNewSosRequests(boolean b) { findOutAllRequest(); }
+    private void findOutAllRequest() {
+        user_requestRef.whereEqualTo("isSolved", false).addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
+                if (e != null) {
+                    showLog(" Firebase Listen Failed");
+                    return;
+                }
+                int count = 0;
+                if (mMap != null) {
+                    for (OpioidMarkers opioidMarkers : currentOpioidMarkers) {
+                        opioidMarkers.getMarker().remove();
                     }
-                });
+                }
+                count = currentOpioidMarkers.size();
+                currentOpioidMarkers.clear();
+                for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                    OpioidMarkers opioidMarker = generateOpioidMarker(doc);
+                    currentOpioidMarkers.add(opioidMarker);
+                }
+
+                int newCount = currentOpioidMarkers.size() - count;
+                if (newCount > 0) {
+                    if (newCount != currentOpioidMarkers.size()) {
+                        statView.setText("Requesting Opioid " + currentOpioidMarkers.size() + " new " + newCount);
+
+                    } else {
+                        statView.setText("Requesting Opioid " + currentOpioidMarkers.size());
+                    }
+                    playNewRequestsSound();
+                } else {
+                    statView.setText("Requesting Opioid " + currentOpioidMarkers.size());
+                }
+
+
+            }
+        });
 
     }
-
     private OpioidMarkers generateOpioidMarker(QueryDocumentSnapshot doc) {
-
         OpioidRequest opioidRequest = doc.toObject(OpioidRequest.class);
         Marker marker = mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(opioidRequest.getLatitude(), opioidRequest.getLongitude()))
@@ -314,16 +334,84 @@ public class NalexoneDashboardActivity extends FragmentActivity
 
         marker.showInfoWindow();
 
-        OpioidMarkers opioidMarkers = new OpioidMarkers(opioidRequest,marker);
+        OpioidMarkers opioidMarkers = new OpioidMarkers(opioidRequest, marker);
         marker.setTag(opioidMarkers);
         return opioidMarkers;
 
     }
+    public void respondingOrNot(View view) {
+        if(isAcceptedRequest){
+            final HashMap<String, Object> map = new HashMap<>();
+            map.put("acceptedUserId", null);
+            map.put("isSolved", false);
 
+            dailogBuilder.setTitle("Sure you want to canclel Help to" + helpedUseremail)
+
+                    .setNegativeBtnText("Cancel")
+                    .setPositiveBtnBackground("#FF4081")
+                    .setPositiveBtnText("Ok")
+                    .setNegativeBtnBackground("#FFA9A7A8")
+                    .setGifResource(R.drawable.help)   //Pass your Gif here
+                    .isCancellable(true)
+                    .OnPositiveClicked(new FancyGifDialogListener() {
+                        @Override
+                        public void OnClick() {
+
+                            user_requestRef.document(helpedUseremail).update(map);
+                            isAcceptedRequest = false;
+                            cancelButton.setText("SOS Requests");
+                            locationRef.document(user.getEmail()).delete();
+                        }
+                    })
+                    .OnNegativeClicked(new FancyGifDialogListener() {
+                        @Override
+                        public void OnClick() {
+                            Toast.makeText(NalexoneDashboardActivity.this, "Cancel", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .build();
+        }
+
+    }
 
 
     // my custom methods
     private void playNewRequestsSound() {
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this);
+        mBuilder.setSmallIcon(R.drawable.ic_edit_location);
+        mBuilder.setContentTitle("New sos requests around you");
+        mBuilder.setContentText(" Find the requested users on map");
+
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationChannel notificationChannel = new NotificationChannel("Alert", "alertCh", NotificationManager.IMPORTANCE_HIGH);
+            mNotificationManager.createNotificationChannel(notificationChannel);
+        }
+        mNotificationManager.notify(001, mBuilder.build());
+
+
+        Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        if (alert == null) {
+            alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            if (alert == null) {
+                alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+            }
+        }
+        final MediaPlayer mp = MediaPlayer.create(getApplicationContext(), alert);
+
+        CountDownTimer cntr_aCounter = new CountDownTimer(10000, 1000) {
+            public void onTick(long millisUntilFinished) {
+
+                mp.start();
+            }
+
+            public void onFinish() {
+                //code fire after finish
+                mp.stop();
+            }
+        };
+        cntr_aCounter.start();
 
     }
     private void showSnackBar(String message) {
@@ -340,15 +428,8 @@ public class NalexoneDashboardActivity extends FragmentActivity
         Toast.makeText(NalexoneDashboardActivity.this, s, Toast.LENGTH_LONG).show();
     }
 
-    private float getDistance(Location destination){
-        return  (myLocation.distanceTo(destination)/1000);
-    }
-
-
-    // View click methods
-    public void findSosRequests(View view) {
-        findOutAllRequest();
-
+    private float getDistance(Location destination) {
+        return (myLocation.distanceTo(destination) / 1000);
     }
 
     private void showDailog(final OpioidMarkers opioidMarkers) {
@@ -356,12 +437,12 @@ public class NalexoneDashboardActivity extends FragmentActivity
         dest.setLongitude(opioidMarkers.getRequest().getLongitude());
         dest.setLatitude(opioidMarkers.getRequest().getLatitude());
 
-        final HashMap<String,Object> map = new HashMap<>();
+        final HashMap<String, Object> map = new HashMap<>();
         map.put("acceptedUserId", user.getEmail());
-        map.put("isSolved",true);
+        map.put("isSolved", true);
 
-        dailogBuilder.setTitle(" Want to Help "+opioidMarkers.getRequest().getUser().getName())
-                .setMessage(" He is "+ getDistance(dest)+" km away from you and your naloxone is 5km away from you. ")
+        dailogBuilder.setTitle(" Want to Help " + opioidMarkers.getRequest().getUser().getName())
+                .setMessage(" He is " + getDistance(dest) + " km away from you and your naloxone is 5km away from you. ")
                 .setNegativeBtnText("Cancel")
                 .setPositiveBtnBackground("#FF4081")
                 .setPositiveBtnText("Ok")
@@ -371,20 +452,26 @@ public class NalexoneDashboardActivity extends FragmentActivity
                 .OnPositiveClicked(new FancyGifDialogListener() {
                     @Override
                     public void OnClick() {
-                       user_requestRef.document(opioidMarkers.getRequest().getUser().getEmail()).update(map);
-                       isAcceptedRequest = true;
-                       UserLocation currentLoc = new UserLocation(myLocation.getLatitude(),myLocation.getLongitude());
-                       locationRef.document(user.getEmail()).set(currentLoc);
+                        helpedUseremail = opioidMarkers.getRequest().getUser().getEmail();
+                        user_requestRef.document(helpedUseremail).update(map);
+                        isAcceptedRequest = true;
+                        UserLocation currentLoc = new UserLocation(myLocation.getLatitude(), myLocation.getLongitude());
+                        locationRef.document(user.getEmail()).set(currentLoc);
+                        requestStatus = " You are helping "+helpedUseremail;
+                        cancelButton.setText("Cancel Help");
+                        myPosition.setSnippet("You are helping "+helpedUseremail);
+                        myPosition.showInfoWindow();
+
+
                     }
                 })
                 .OnNegativeClicked(new FancyGifDialogListener() {
                     @Override
                     public void OnClick() {
-                        Toast.makeText(NalexoneDashboardActivity.this,"Cancel",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(NalexoneDashboardActivity.this, "Cancel", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .build();
-
 
 
     }

@@ -20,6 +20,7 @@ import com.smarteist.autoimageslider.IndicatorAnimations;
 import com.smarteist.autoimageslider.IndicatorView.draw.controller.DrawController;
 import com.smarteist.autoimageslider.SliderAnimations;
 import com.smarteist.autoimageslider.SliderView;
+import com.ttl.callforhelp.util.CheckIfLocationEnabled;
 import com.ttl.callforhelp.util.MyPreference;
 import com.ttl.callforhelp.util.PermissionUtils;
 import com.ttl.callforhelp.util.ReferenceTerms;
@@ -47,6 +48,10 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
     String address = "";
     private SliderView sliderView;
 
+
+    CheckIfLocationEnabled checkIfLocationEnabled;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,28 +62,36 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
         permissionUtils = new PermissionUtils(this);
         permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
         permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         permissionUtils.check_permission(permissions, "Need GPS permission for getting your location", 1);
 
 
         FirebaseApp.initializeApp(this);
-        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-            if( myPreference.getIsProfileComplete()){
-                if(myPreference.getUserType().equals(ReferenceTerms.naloxone)){
-                    startActivity(new Intent(this, NalexoneDashboardActivity.class));
-                    finish();
-                }
-                else{
-                    startActivity(new Intent(this, OpioidDashboardActivity.class));
+        checkIfLocationEnabled = new CheckIfLocationEnabled(this, this);
+        if (checkIfLocationEnabled.checkIfLocationEnablde()) {
+            if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                if (myPreference.getIsProfileComplete()) {
+                    if (myPreference.getUserType().equals(ReferenceTerms.naloxone)) {
+                        startActivity(new Intent(this, NalexoneDashboardActivity.class));
+                        finish();
+                    } else {
+                        startActivity(new Intent(this, OpioidDashboardActivity.class));
+                        finish();
+                    }
+
+                } else {
+                    startActivity(new Intent(this, CompleteProfileActivity.class));
                     finish();
                 }
 
             }
-            else {
-                startActivity(new Intent(this, CompleteProfileActivity.class));
-                finish();
-            }
-
         }
+        else {
+            checkIfLocationEnabled.locationTurnOnDailog();
+        }
+
+
 
 
         /*sliderLayout = findViewById(R.id.imageSlider);
@@ -90,8 +103,6 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
 
 
     }
-
-
 
 
     public void opioidSignUp(View view) {
@@ -134,7 +145,6 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
         }
 
 
-
     }
 
     private void showLog(String msg) {
@@ -146,8 +156,6 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
     }
 
 
-
-
     private void setUserPreferences(FirebaseUser user) {
         myPreference.setUserName(user.getDisplayName());
         myPreference.setUserType(this.role);
@@ -157,8 +165,6 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
 
     private void setSliderViews() {
         final SliderAdapterExample adapter = new SliderAdapterExample(this);
-        //adapter.setCount(5);
-
         sliderView.setSliderAdapter(adapter);
         sliderView.setIndicatorAnimation(IndicatorAnimations.SLIDE); //set indicator animation by using SliderLayout.IndicatorAnimations. :WORM or THIN_WORM or COLOR or DROP or FILL or NONE or SCALE or SCALE_DOWN or SLIDE and SWAP!!
         sliderView.setSliderTransformAnimation(SliderAnimations.SIMPLETRANSFORMATION);
@@ -233,4 +239,6 @@ public class SpalshTutorial extends AppCompatActivity implements ActivityCompat.
 
     public void login(View view) {
     }
+
+
 }

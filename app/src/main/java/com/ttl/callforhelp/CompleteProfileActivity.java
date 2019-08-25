@@ -7,19 +7,21 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.location.Location;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.example.easywaylocation.EasyWayLocation;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -33,35 +35,35 @@ import com.ttl.callforhelp.util.ReferenceTerms;
 
 import java.io.IOException;
 
-import fr.quentinklein.slt.LocationTracker;
-import fr.quentinklein.slt.TrackerSettings;
-
 import static com.ttl.callforhelp.util.ReferenceTerms.PICK_IMAGE_REQUEST;
 
 public class CompleteProfileActivity extends AppCompatActivity {
 
+    //location
     private Double lati, longi;
-    MyPreference myPreference;
+    Location myLocation;
+    private FusedLocationProviderClient fusedLocationClient;
+
+
 
 
     //ImageView
-    private TextView address;
+    private EditText address;
     private ImageView imageView;
     private TextView detail;
     private ProgressDialog progressDialog;
 
 
-
     //a Uri object to store file path
     private Uri filePath;
-    private StorageReference mStorageRef;
     private boolean isImageUploaded = false;
-
     User user;
-    FirebaseFirestore db;
+    MyPreference myPreference;
     private String useraddress;
-    private LocationTracker tracker;
 
+    //firebase
+    FirebaseFirestore db;
+    private StorageReference mStorageRef;
 
 
     @Override
@@ -71,10 +73,26 @@ public class CompleteProfileActivity extends AppCompatActivity {
 
         locationListener();
 
+        /*private LocationManager locationManager;
+        private String mprovider;
+        private Location locationGPS;
+        private Location locationNet;
+
+        mprovider = LocationManager.NETWORK_PROVIDER;
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            showToast("Need GPS permission for getting your location");
+        }
+        else {
+            locationGPS = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            locationNet = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            myLocation = getLastBestLocation(locationGPS,locationNet);
+        }*/
+
         myPreference = MyPreference.getInstance(this);
         mStorageRef = FirebaseStorage.getInstance().getReference();
         db = FirebaseFirestore.getInstance();
-        user = new User(myPreference.getUserType(), myPreference.getUserName(), myPreference.getUserEmail(), null, null, null,null);
+        user = new User(myPreference.getUserType(), myPreference.getUserName(), myPreference.getUserEmail(), null, null, null, null);
 
 
         detail = findViewById(R.id.detail);
@@ -83,12 +101,12 @@ public class CompleteProfileActivity extends AppCompatActivity {
         address.setText(myPreference.getUserAddress());
         progressDialog = new ProgressDialog(this);
 
-        String text="";
+        String text = "";
 
         if (user.getType().equals(ReferenceTerms.naloxone)) {
-            text =   "Welcome " + user.getName() +".Please provide the address where you keep your Naloxone and upload a picture to complete your profile..";
+            text = "Welcome " + user.getName() + ".Please provide the address where you keep your Naloxone and upload a picture to complete your profile..";
         } else {
-            text = "Welcome "+ user.getName()+ ",please provide your address and profile picture to complete your profile.";
+            text = "Welcome " + user.getName() + ",please provide your address and profile picture to complete your profile.";
         }
         detail.setText(text);
 
@@ -98,22 +116,13 @@ public class CompleteProfileActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (tracker != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    return;
-                }
-            }
-            tracker.startListening();
-        }
-
-
     }
+
     @Override
     protected void onPause() {
-        tracker.stopListening();
         super.onPause();
     }
+
     //handling the image chooser activity result
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -139,12 +148,12 @@ public class CompleteProfileActivity extends AppCompatActivity {
         uploadFile();
     }
 
-    public void pickaplace(View view) { }
+    public void pickaplace(View view) {
+    }
 
     public void completeProfile(View view) {
         this.updateProfileData(progressDialog);
     }
-
 
 
     //Custom Methods
@@ -208,13 +217,11 @@ public class CompleteProfileActivity extends AppCompatActivity {
     }
 
     private void updateProfileData(final ProgressDialog progressDialog) {
-        if( isImageUploaded==false){
+        if (isImageUploaded == false) {
             showToast(" Please Upload Image First");
-        }
-        else if(user.getLat()==null || user.getLon()==null || user.getAddress()==null){
+        } else if (user.getLat() == null || user.getLon() == null || user.getAddress() == null) {
             showToast("Could not determine your location and address.Please try again");
-        }
-        else{
+        } else {
             progressDialog.setTitle("Updating your profile information.");
             progressDialog.show();
             db.collection(user.getType()).document(user.getEmail()).set(user).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -223,11 +230,10 @@ public class CompleteProfileActivity extends AppCompatActivity {
                     progressDialog.dismiss();
                     showToast(" Your Profile is updated");
                     myPreference.savePreferences(user);
-                    if(user.getType().equals(ReferenceTerms.opioid)){
+                    if (user.getType().equals(ReferenceTerms.opioid)) {
                         startActivity(new Intent(CompleteProfileActivity.this, OpioidDashboardActivity.class));
                         finish();
-                    }
-                    else {
+                    } else {
                         startActivity(new Intent(CompleteProfileActivity.this, NalexoneDashboardActivity.class));
                         finish();
                     }
@@ -246,7 +252,7 @@ public class CompleteProfileActivity extends AppCompatActivity {
 
         lati = location.getLatitude();
         longi = location.getLongitude();
-        useraddress = EasyWayLocation.getAddress(this, lati, longi, false, true);
+        useraddress =EasyWayLocation.getAddress(this,location.getLatitude(),location.getLongitude(),false,true);
         user.setLon(String.valueOf(longi));
         user.setLat(String.valueOf(lati));
         address.setText(useraddress);
@@ -255,38 +261,44 @@ public class CompleteProfileActivity extends AppCompatActivity {
     }
 
     private void locationListener() {
-        TrackerSettings settings =
-                new TrackerSettings()
-                        .setUseGPS(true)
-                        .setUseNetwork(true)
-                        .setUsePassive(true)
-                        .setTimeBetweenUpdates(30 * 1000)
-                        .setMetersBetweenUpdates(1);
-
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
-            Toast.makeText(getApplicationContext(), "Permission required", Toast.LENGTH_SHORT).show();
-        } else {
-            tracker = new LocationTracker(getApplicationContext(),settings) {
-                @Override
-                public void onLocationFound(Location location) {
-                    // Do some stuff
-                    if(location!= null){
-                        locationOn(location);
-                    }
-
-                }
-
-                @Override
-                public void onTimeout() {
-
-                }
-            };
-
-            tracker.startListening();
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            showToast("You must provide location permission to this app");
         }
-
+        else {
+            fusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                        @Override
+                        public void onSuccess(Location location) {
+                            if (location != null) {
+                                myLocation = location;
+                                locationOn(myLocation);
+                            }
+                        }
+                    });
+        }
     }
 
+
+
+    private Location getLastBestLocation(Location locationGPS,Location locationNet) {
+
+
+        long GPSLocationTime = 0;
+        if (null != locationGPS) { GPSLocationTime = locationGPS.getTime(); }
+
+        long NetLocationTime = 0;
+
+        if (null != locationNet) {
+            NetLocationTime = locationNet.getTime();
+        }
+
+        if ( 0 < GPSLocationTime - NetLocationTime ) {
+            return locationGPS;
+        }
+        else {
+            return locationNet;
+        }
+    }
 
 }
