@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    >
+
+
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="15sp"
+        android:fontFamily="@font/roboto_semi_bold"
+        android:id="@+id/title"
+        android:textColor="@color/colorbgDark"
+        android:textStyle="italic"
+        android:drawableRight="@drawable/ic_help"
+
+        />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:fontFamily="@font/roboto_semi_bold"
+        android:id="@+id/snippet"
+        android:text="help him"
+        android:textColor="@color/colorbgLight"
+        />
+
+
+
+</LinearLayout>
