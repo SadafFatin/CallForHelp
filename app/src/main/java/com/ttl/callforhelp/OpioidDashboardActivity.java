@@ -3,6 +3,7 @@ package com.ttl.callforhelp;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,6 +25,17 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentActivity;
 
+import com.akexorcist.googledirection.DirectionCallback;
+import com.akexorcist.googledirection.GoogleDirection;
+import com.akexorcist.googledirection.constant.AvoidType;
+import com.akexorcist.googledirection.constant.TransitMode;
+import com.akexorcist.googledirection.constant.TransportMode;
+import com.akexorcist.googledirection.constant.Unit;
+import com.akexorcist.googledirection.model.Direction;
+import com.akexorcist.googledirection.model.Info;
+import com.akexorcist.googledirection.model.Leg;
+import com.akexorcist.googledirection.model.Route;
+import com.akexorcist.googledirection.util.DirectionConverter;
 import com.bumptech.glide.Glide;
 import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -36,6 +48,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -55,6 +68,8 @@ import com.ttl.callforhelp.model.User;
 import com.ttl.callforhelp.model.UserLocation;
 import com.ttl.callforhelp.util.MyPreference;
 
+import java.util.ArrayList;
+
 import javax.annotation.Nullable;
 
 import fr.quentinklein.slt.LocationTracker;
@@ -65,31 +80,27 @@ public class OpioidDashboardActivity extends FragmentActivity
 
     //User mngmnt
     MyPreference myPreference;
-    User user;
-
+    User user, naloxoneProvider;
     //Status
     private String requestStatus = " Need naloxone ?";
     private boolean isRequested = false;
-
     //Map and UserLocation
     private LocationTracker tracker;
     public Location myLocation;
     private GoogleMap mMap;
     private Marker myPosition;
     private Marker naloxoneProviderMarker;
-
+    private Marker naloxoneProviderHomeMarker;
     //Firebase and firestore
     FirebaseFirestore db = FirebaseFirestore.getInstance();
-    CollectionReference user_request = db.collection("user_request");
+    CollectionReference user_requestRef = db.collection("user_request");
     CollectionReference locationRef = db.collection("location");
-
-
-
+    CollectionReference naloxoneRef = db.collection("naloxone");
     //views
     FancyGifDialog.Builder dailogBuilder;
     private FusedLocationProviderClient fusedLocationClient;
     private boolean isAnswered = false;
-
+    TextView status;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -104,6 +115,7 @@ public class OpioidDashboardActivity extends FragmentActivity
         user = myPreference.getCurrentUser();
 
         dailogBuilder = new FancyGifDialog.Builder(this);
+        status = findViewById(R.id.stat);
         toolbar.setTitle(" Welcome " + user.getName());
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -119,7 +131,7 @@ public class OpioidDashboardActivity extends FragmentActivity
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
 
-        View v = View.inflate(this,R.layout.nav_header_opioid_dashboard,navigationView);
+        View v = View.inflate(this, R.layout.nav_header_opioid_dashboard, navigationView);
 
         TextView email = v.findViewById(R.id.email);
         email.setText(user.getEmail());
@@ -127,7 +139,7 @@ public class OpioidDashboardActivity extends FragmentActivity
         TextView address = v.findViewById(R.id.subtitle_view);
         address.setText(user.getAddress());
 
-        ImageView imageView =  v.findViewById(R.id.imageView);
+        ImageView imageView = v.findViewById(R.id.imageView);
         Glide.with(this).load(myPreference.getUserImgUri()).into(imageView);
 
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -136,7 +148,6 @@ public class OpioidDashboardActivity extends FragmentActivity
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
     }
-
     @Override
     protected void onResume() {
         super.onResume();
@@ -149,7 +160,6 @@ public class OpioidDashboardActivity extends FragmentActivity
             tracker.startListening();
         }
     }
-
     @Override
     protected void onPause() {
         tracker.stopListening();
@@ -166,7 +176,6 @@ public class OpioidDashboardActivity extends FragmentActivity
         mMap.getUiSettings().setMapToolbarEnabled(false);
         addMyMarker();
     }
-
     private void addMyMarker() {
         if (myLocation != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -180,7 +189,7 @@ public class OpioidDashboardActivity extends FragmentActivity
                 mMap.getUiSettings().setMyLocationButtonEnabled(true);
             }
 
-            if(myPosition!=null){
+            if (myPosition != null) {
                 myPosition.remove();
             }
             myPosition = mMap.addMarker(new MarkerOptions()
@@ -196,31 +205,44 @@ public class OpioidDashboardActivity extends FragmentActivity
         }
 
     }
-
-    private void addMarker(Location loc) {
-
-            naloxoneProviderMarker = mMap.addMarker(new MarkerOptions()
-                    .position(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()))
-                    .icon(BitmapDescriptorFactory
-                            .defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-                    .title(" Naloxone Provider ").snippet("on his way"));
-            naloxoneProviderMarker.showInfoWindow();
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(myPosition.getPosition(), 16));
-
-
+    private void addNaloxoneProviderCurrentMarker(Location loc) {
+        if (naloxoneProviderMarker != null) {
+            naloxoneProviderMarker.remove();
+        }
+        naloxoneProviderMarker = mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(loc.getLatitude(), loc.getLongitude()))
+                .icon(BitmapDescriptorFactory
+                        .defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                .title(" Naloxone Provider ").snippet("on his way"));
+        naloxoneProviderMarker.showInfoWindow();
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(naloxoneProviderMarker.getPosition(), 14));
+        addRoutes(naloxoneProviderMarker , naloxoneProviderHomeMarker);
+    }
+    private void addNaloxoneProviderHomeMarker(Location loc) {
+        if (naloxoneProviderHomeMarker != null) {
+            naloxoneProviderHomeMarker.remove();
+        }
+        naloxoneProviderHomeMarker = mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(loc.getLatitude(), loc.getLongitude()))
+                .icon(BitmapDescriptorFactory
+                        .defaultMarker(BitmapDescriptorFactory.HUE_ORANGE))
+                .title(" Naloxone is here ").snippet("provider has to get it first"));
+        naloxoneProviderHomeMarker.showInfoWindow();
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(naloxoneProviderHomeMarker.getPosition(), 14));
+        addRoutes(naloxoneProviderHomeMarker,myPosition);
     }
 
     //location tracking methods
-    public void locationOn(Location location) {
+    private void locationOn(Location location) {
         this.myLocation = location;
         showLog("found" + location.getLatitude() + location.getLongitude());
-        if(mMap!=null){
+        if (mMap != null) {
             addMyMarker();
         }
 
 
     }
-    void locationListener() {
+    private void locationListener() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             showToast("You must provide location permission to this app");
@@ -254,6 +276,7 @@ public class OpioidDashboardActivity extends FragmentActivity
                         locationOn(location);
                     }
                 }
+
                 @Override
                 public void onTimeout() {
                 }
@@ -263,12 +286,11 @@ public class OpioidDashboardActivity extends FragmentActivity
 
     }
 
-
     // View click methods
     public void sendSosRequest(final View view) {
         final Button b = (Button) view;
-        if(isRequested){
-            user_request.document(user.getEmail()).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+        if (isRequested) {
+            user_requestRef.document(user.getEmail()).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
                 @Override
                 public void onSuccess(Void aVoid) {
                     b.setText("SOS");
@@ -279,15 +301,13 @@ public class OpioidDashboardActivity extends FragmentActivity
                     myPosition.showInfoWindow();
                 }
             });
-        }
-        else{
-            if(myLocation==null){
+        } else {
+            if (myLocation == null) {
                 showSnackBar(" Sorry couldn't locate you.Failed to make request.");
 
-            }
-            else {
-                OpioidRequest userRequest = new OpioidRequest(user,myLocation.getLatitude(),myLocation.getLongitude());
-                user_request.document(user.getEmail()).set(userRequest).addOnSuccessListener(new OnSuccessListener<Void>() {
+            } else {
+                OpioidRequest userRequest = new OpioidRequest(user, myLocation.getLatitude(), myLocation.getLongitude());
+                user_requestRef.document(user.getEmail()).set(userRequest).addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
                         showSnackBar(" Your SOS request has been sent successfully");
@@ -296,6 +316,7 @@ public class OpioidDashboardActivity extends FragmentActivity
                         myPosition.showInfoWindow();
                         isRequested = true;
                         b.setText("Cancel Request");
+                        status.setText("Request has been made wating for acceptence");
                         listenForAcceptence(true);
 
                     }
@@ -304,32 +325,29 @@ public class OpioidDashboardActivity extends FragmentActivity
         }
 
 
-
     }
 
     // Request and Response methods
-
     private void listenForAcceptence(boolean b) {
         final DocumentReference docRef = db.collection("user_request").document(user.getEmail());
         docRef.addSnapshotListener(new EventListener<DocumentSnapshot>() {
             @Override
-            public void onEvent(@Nullable DocumentSnapshot snapshot , @Nullable FirebaseFirestoreException e) {
-
+            public void onEvent(@Nullable DocumentSnapshot snapshot, @Nullable FirebaseFirestoreException e) {
                 if (e != null) {
                     showLog("Listen failed.");
                     return;
                 }
                 if (snapshot != null && snapshot.exists()) {
                     showLog("Current data:");
-                    showToast("Changed");
                     OpioidRequest opioidRequest = snapshot.toObject(OpioidRequest.class);
-                    if(opioidRequest.getSolved()){
+                    //showToast("Changed " + opioidRequest.getSolved());
+                    if (opioidRequest.getSolved()) {
                         showAcceptanceDailog(opioidRequest);
-                    }
-                    else {
-                        if(isAnswered){
+                    } else {
+                        if (isAnswered) {
                             showSnackBar("Your request was cancelled");
                             isAnswered = false;
+                            status.setText("Your request was cancelled by naloxone provider");
                         }
 
                     }
@@ -342,14 +360,12 @@ public class OpioidDashboardActivity extends FragmentActivity
 
 
     }
-
     private void showAcceptanceDailog(final OpioidRequest opioidRequest) {
 
-        locationRef.document(opioidRequest.acceptedUserId).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+        locationRef.document(opioidRequest.getAcceptedUserId()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 dailogBuilder.setTitle(" A naloxone provider has answered")
-                        .setMessage(" He is 2"+" km away from you.")
                         .setNegativeBtnText("Cancel")
                         .setPositiveBtnBackground("#FF4081")
                         .setPositiveBtnText("Ok")
@@ -360,7 +376,8 @@ public class OpioidDashboardActivity extends FragmentActivity
                             @Override
                             public void OnClick() {
                                 isAnswered = true;
-                                listenForNaloxoneLocChange(opioidRequest.acceptedUserId);
+                                putNaloxoneProviderHomeOnMap(opioidRequest);
+                                status.setText("Help is on the way");
                             }
                         })
                         .OnNegativeClicked(new FancyGifDialogListener() {
@@ -374,19 +391,70 @@ public class OpioidDashboardActivity extends FragmentActivity
         });
 
     }
-
+    private void putNaloxoneProviderHomeOnMap(final OpioidRequest opioidRequest) {
+        naloxoneRef.document(opioidRequest.getAcceptedUserId()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                naloxoneProvider = documentSnapshot.toObject(User.class);
+                Location location = new Location("");
+                location.setLatitude(Double.parseDouble(naloxoneProvider.getLat()));
+                location.setLongitude(Double.parseDouble(naloxoneProvider.getLon()));
+                addNaloxoneProviderHomeMarker(location);
+                listenForNaloxoneLocChange(opioidRequest.getAcceptedUserId());
+            }
+        });
+    }
     private void listenForNaloxoneLocChange(String acceptedUserId) {
         locationRef.document(acceptedUserId).addSnapshotListener(new EventListener<DocumentSnapshot>() {
             @Override
             public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException e) {
-                 UserLocation naloxoneProvider = documentSnapshot.toObject(UserLocation.class);
-                 Location location = new Location("");
-                 location.setLatitude(naloxoneProvider.getLat());
-                 location.setLongitude(naloxoneProvider.getLon());
-                 addMarker(location);
 
+                UserLocation naloxoneProviderCurrentLoc = documentSnapshot.toObject(UserLocation.class);
+                Location location = new Location("");
+                location.setLatitude(naloxoneProviderCurrentLoc.getLat());
+                location.setLongitude(naloxoneProviderCurrentLoc.getLon());
+                addNaloxoneProviderCurrentMarker(location);
             }
         });
+
+    }
+
+    private void addRoutes(Marker src,Marker dest) {
+        GoogleDirection.withServerKey(OpioidDashboardActivity.this.getString(R.string.google_api_key))
+                .from(new LatLng(src.getPosition().latitude, src.getPosition().longitude))
+                .to(new LatLng(dest.getPosition().latitude, dest.getPosition().longitude))
+                .avoid(AvoidType.FERRIES)
+                .avoid(AvoidType.INDOOR)
+                .transportMode(TransportMode.TRANSIT)
+                .transitMode(TransitMode.BUS)
+                .transitMode(TransitMode.SUBWAY)
+                .transitMode(TransitMode.TRAM)
+                .unit(Unit.METRIC)
+                .execute(new DirectionCallback() {
+                    @Override
+                    public void onDirectionSuccess(Direction direction, String rawBody) {
+                        if (direction.isOK()) {
+                            Route route = direction.getRouteList().get(0);
+                            Leg leg = route.getLegList().get(0);
+                            Info distanceInfo = leg.getDistance();
+                            Info durationInfo = leg.getDuration();
+                            String distance = distanceInfo.getText();
+                            String duration = durationInfo.getText();
+                            showSnackBar("Time " + duration + " distance " + distance);
+                            status.setText(" Provider is "+distance+" km and "+duration+" min away");
+                            ArrayList<LatLng> directionPositionList = leg.getDirectionPoint();
+                            PolylineOptions polylineOptions = DirectionConverter.createPolyline(OpioidDashboardActivity.this, directionPositionList, 3, Color.rgb(92, 50, 168));
+                            mMap.addPolyline(polylineOptions);
+
+                        } else {
+                            showSnackBar("Could not find route");
+                        }
+                    }
+                    @Override
+                    public void onDirectionFailure(Throwable t) {
+                        showSnackBar("Could not find route");
+                    }
+                });
 
     }
 
@@ -405,6 +473,10 @@ public class OpioidDashboardActivity extends FragmentActivity
     }
 
 
+
+
+
+
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -414,13 +486,11 @@ public class OpioidDashboardActivity extends FragmentActivity
             super.onBackPressed();
         }
     }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.dashboard, menu);
         return true;
     }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
@@ -433,7 +503,6 @@ public class OpioidDashboardActivity extends FragmentActivity
 
         return super.onOptionsItemSelected(item);
     }
-
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
@@ -465,7 +534,6 @@ public class OpioidDashboardActivity extends FragmentActivity
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
-
 
 
 }

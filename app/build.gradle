@@ -73,6 +73,8 @@ dependencies {
     implementation 'com.github.prabhat1707:EasyWayLocation:1.0'
     implementation 'com.github.imperiumlabs:GeoFirestore-Android:v1.1.1'
     implementation 'com.github.quentin7b:android-location-tracker:3.2'
+    implementation 'com.akexorcist:googledirectionlibrary:1.1.1'
+
 
     //dailog
     implementation 'com.github.Shashank02051997:FancyGifDialog-Android:1.2'

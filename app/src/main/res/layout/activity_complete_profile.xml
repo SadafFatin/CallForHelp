@@ -18,7 +18,7 @@
         android:textSize="15sp"
         android:id="@+id/detail"/>
 
-    <TextView
+    <EditText
         android:id="@+id/address"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -27,9 +27,13 @@
         android:background="#7EE9E7E7"
         android:padding="@dimen/card_elevation"
         android:layout_margin="@dimen/card_elevation"
-        android:textSize="19sp"
+        android:textSize="16sp"
         android:drawableLeft="@drawable/ic_edit_location"
-        android:onClick="pickaplace"/>
+        android:onClick="pickaplace"
+        android:fontFamily="@font/roboto_semi_bold"
+        android:lines="3"
+        android:gravity="center_vertical"
+        />
 
     <ImageView
         android:id="@+id/imageView"

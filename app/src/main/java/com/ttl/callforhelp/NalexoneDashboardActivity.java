@@ -344,7 +344,7 @@ public class NalexoneDashboardActivity extends FragmentActivity
             final HashMap<String, Object> map = new HashMap<>();
             map.put("acceptedUserId", null);
             map.put("isSolved", false);
-
+            map.put("solved", false);
             dailogBuilder.setTitle("Sure you want to canclel Help to" + helpedUseremail)
 
                     .setNegativeBtnText("Cancel")
@@ -440,7 +440,7 @@ public class NalexoneDashboardActivity extends FragmentActivity
         final HashMap<String, Object> map = new HashMap<>();
         map.put("acceptedUserId", user.getEmail());
         map.put("isSolved", true);
-
+        map.put("solved", true);
         dailogBuilder.setTitle(" Want to Help " + opioidMarkers.getRequest().getUser().getName())
                 .setMessage(" He is " + getDistance(dest) + " km away from you and your naloxone is 5km away from you. ")
                 .setNegativeBtnText("Cancel")
