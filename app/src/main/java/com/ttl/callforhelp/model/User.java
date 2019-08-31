@@ -3,7 +3,7 @@ package com.ttl.callforhelp.model;
 public class User {
 
 
-    public User(String type, String name, String email, String lat, String lon, String address, String imageUri) {
+    public User(String type, String name, String email, String lat, String lon, String address, String imageUri,String phoneNum) {
         this.type = type;
         this.name = name;
         this.email = email;
@@ -11,6 +11,7 @@ public class User {
         this.lon = lon;
         this.address = address;
         this.imageUri = imageUri;
+        this.phoneNum = phoneNum;
     }
 
     public User() {
@@ -20,6 +21,20 @@ public class User {
     private  String name;
     private String email;
     private String lat;
+    private String lon;
+    private String address;
+    private String imageUri;
+    private String phoneNum;
+
+    public String getPhoneNum() {
+        return phoneNum;
+    }
+
+    public void setPhoneNum(String phoneNum) {
+        this.phoneNum = phoneNum;
+    }
+
+
 
     public String getType() {
         return type;
@@ -77,9 +92,7 @@ public class User {
         this.imageUri = imageUri;
     }
 
-    private String lon;
-    private String address;
-    private String imageUri;
+
 
 
 

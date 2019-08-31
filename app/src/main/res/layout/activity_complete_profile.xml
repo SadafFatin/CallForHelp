@@ -35,6 +35,26 @@
         android:gravity="center_vertical"
         />
 
+    <EditText
+        android:id="@+id/phnNum"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Your Phone Number "
+        android:inputType="text"
+        android:background="#7EE9E7E7"
+        android:padding="@dimen/card_elevation"
+        android:layout_margin="@dimen/card_elevation"
+        android:textSize="16sp"
+        android:drawableLeft="@drawable/ic_local_phone"
+        android:onClick="pickaplace"
+        android:fontFamily="@font/roboto_semi_bold"
+        android:lines="3"
+        android:gravity="center_vertical"
+        />
+
+
+
+
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="220dp"
@@ -50,11 +70,12 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:weightSum="2"
-        android:padding="@dimen/card_elevation">
+        android:padding="@dimen/card_elevation"
+        android:id="@+id/imageLyt">
 
         <Button
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
+            android:layout_height="34dp"
             android:layout_weight=".7"
             android:text="Take a image "
             android:background="@drawable/button_bg_light"
@@ -66,7 +87,7 @@
             android:onClick="choose"/>
         <Button
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
+            android:layout_height="34dp"
             android:layout_weight=".7"
             android:text="Upload photo"
             android:background="@drawable/button_bg_dark"
@@ -91,6 +112,23 @@
         android:drawablePadding="@dimen/card_elevation"
         android:textColor="#ffff"
         android:onClick="completeProfile"/>
+
+
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="Skip Now"
+        android:background="@drawable/button_bg_dark"
+        android:padding="@dimen/card_elevation"
+        android:layout_margin="@dimen/card_elevation"
+        android:drawableLeft="@drawable/ic_check"
+        android:drawablePadding="@dimen/card_elevation"
+        android:textColor="#ffff"
+        android:onClick="skipNow"
+        android:layout_gravity="bottom|center"
+        android:visibility="gone"
+        android:id="@+id/skip"/>
 
 
 

@@ -20,9 +20,9 @@ public class MyPreference {
     private String userImgUri = "userImgUri";
     private String isProfileComplete = "isProfileComplete";
     private String isLoggedIn = "isLoggedIn";
-
-
-
+    private String isAnswered = "isAnswered";
+    private String isRequested = "isRequested";
+    private String firebaseId = "firebaseId";
 
     public boolean getIsProfileComplete() {
         return this.sharedPreferences.getBoolean(isProfileComplete,false);
@@ -32,6 +32,33 @@ public class MyPreference {
         this.preferenceEditor.putBoolean(isProfileComplete,isthisProfileComplete).apply();
     }
 
+    public boolean getIsAnswered() {
+        return this.sharedPreferences.getBoolean(isAnswered,false);
+    }
+
+    public void setIsAnswered(boolean isAns) {
+        this.preferenceEditor.putBoolean(isAnswered,isAns).apply();
+    }
+
+    public boolean getIsRequested() {
+        return this.sharedPreferences.getBoolean(isRequested,false);
+    }
+
+    public void setIsRequested(boolean isReq) {
+        this.preferenceEditor.putBoolean(isRequested,isReq).apply();
+    }
+
+
+
+
+
+    public String getFirebaseId() {
+        return sharedPreferences.getString(firebaseId,"");
+    }
+
+    public void setFirebaseId(String uri) {
+        this.preferenceEditor.putString(firebaseId,uri).apply();
+    }
 
 
     public String getUserImgUri() {
@@ -60,11 +87,11 @@ public class MyPreference {
         this.preferenceEditor.putString(userEmail,usersEmail).apply();
     }
 
-    public String getUserPhn() {
+    public String getUserPhnNum() {
         return sharedPreferences.getString(userPhn,"");
     }
 
-    public void setUserPhn(String usersPhn) {
+    public void setUserPhnNum(String usersPhn) {
         this.preferenceEditor.putString(userPhn,usersPhn).apply();
     }
 
@@ -106,25 +133,26 @@ public class MyPreference {
     }
 
     public void clearAll() {
-        this.instance.setUserImgUri("");
-        this.instance.setUserName("");
-        this.instance.setUserEmail("");
-        this.instance.setIsProfileComplete(false);
-        this.instance.setUserAddress("");
-        this.instance.setUserType("");
+        instance.setUserImgUri("");
+        instance.setUserName("");
+        instance.setUserEmail("");
+        instance.setIsProfileComplete(false);
+        instance.setUserAddress("");
+        instance.setUserType("");
     }
 
     public void savePreferences(User user) {
-        this.instance.setUserImgUri(user.getImageUri());
-        this.instance.setUserName(user.getName());
-        this.instance.setUserEmail(user.getEmail());
-        this.instance.setIsProfileComplete(true);
-        this.instance.setUserAddress(user.getAddress());
-        this.instance.setUserType(user.getType());
+        instance.setUserImgUri(user.getImageUri());
+        instance.setUserName(user.getName());
+        instance.setUserEmail(user.getEmail());
+        instance.setIsProfileComplete(true);
+        instance.setUserAddress(user.getAddress());
+        instance.setUserType(user.getType());
+        instance.setUserPhnNum(user.getPhoneNum());
     }
 
     public User getCurrentUser() {
-        User user = new User(this.instance.getUserType(),this.instance.getUserName(),this.instance.getUserEmail(),null,null,this.instance.getUserAddress(),this.instance.getUserImgUri());
+        User user = new User(instance.getUserType(), instance.getUserName(), instance.getUserEmail(),null,null, instance.getUserAddress(), instance.getUserImgUri(), instance.getUserPhnNum());
         return user;
     }
 }

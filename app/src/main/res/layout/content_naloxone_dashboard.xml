@@ -31,14 +31,13 @@
             android:layout_gravity="center|top"
             android:gravity="start"
             android:id="@+id/request"
-            android:padding="@dimen/card_elevation"
+            android:padding="@dimen/layout_padding"
             android:background="#2F651FFF"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             xmlns:android="http://schemas.android.com/apk/res/android">
             <Button
                 android:layout_width="wrap_content"
-                android:layout_height="33dp"
-                android:layout_marginRight="2dp"
+                android:layout_height="34dp"
                 android:gravity="center"
                 android:background="@drawable/button_bg_dark"
                 android:onClick="respondingOrNot"
@@ -52,12 +51,11 @@
                 />
             <TextView
                 android:layout_width="wrap_content"
-                android:layout_height="35dp"
-                android:layout_marginLeft="2dp"
+                android:layout_height="wrap_content"
                 android:gravity="center"
                 android:text="Statistics"
                 android:textColor="@color/colorPrimaryDark"
-                android:padding="@dimen/card_elevation"
+                android:padding="@dimen/layout_padding"
                 android:id="@+id/stat"
                 android:fontFamily="@font/roboto_semi_bold"
                 android:textSize="18sp"

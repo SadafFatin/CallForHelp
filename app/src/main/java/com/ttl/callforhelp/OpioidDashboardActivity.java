@@ -66,6 +66,7 @@ import com.shashank.sony.fancygifdialoglib.FancyGifDialogListener;
 import com.ttl.callforhelp.model.OpioidRequest;
 import com.ttl.callforhelp.model.User;
 import com.ttl.callforhelp.model.UserLocation;
+import com.ttl.callforhelp.util.FirebaseSendNotification;
 import com.ttl.callforhelp.util.MyPreference;
 
 import java.util.ArrayList;
@@ -78,9 +79,11 @@ import fr.quentinklein.slt.TrackerSettings;
 public class OpioidDashboardActivity extends FragmentActivity
         implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
 
+    private static final String TAG = " Firebase ";
     //User mngmnt
     MyPreference myPreference;
     User user, naloxoneProvider;
+    OpioidRequest currentOpioidRequest;
     //Status
     private String requestStatus = " Need naloxone ?";
     private boolean isRequested = false;
@@ -140,14 +143,38 @@ public class OpioidDashboardActivity extends FragmentActivity
         address.setText(user.getAddress());
 
         ImageView imageView = v.findViewById(R.id.imageView);
-        Glide.with(this).load(myPreference.getUserImgUri()).into(imageView);
+        Glide.with(this).load(R.drawable.dummy_user).into(imageView);
 
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
+
+
+        isRequested = myPreference.getIsRequested();
+        isAnswered = myPreference.getIsAnswered();
+        if(isAnswered&&isRequested){
+
+            getCurrentOpioidRequest();
+
+        }
+        else if(isRequested){
+
+        }
+
+
+
     }
+
+
+    private void getCurrentOpioidRequest() {
+
+        final DocumentReference docRef = db.collection("user_request").document(user.getEmail());
+
+    }
+
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -288,43 +315,56 @@ public class OpioidDashboardActivity extends FragmentActivity
 
     // View click methods
     public void sendSosRequest(final View view) {
-        final Button b = (Button) view;
         if (isRequested) {
-            user_requestRef.document(user.getEmail()).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
-                @Override
-                public void onSuccess(Void aVoid) {
-                    b.setText("SOS");
-                    showSnackBar("Your Request has been cancelled");
-                    isRequested = false;
-                    requestStatus = " Need naloxone ?";
-                    myPosition.setSnippet(requestStatus);
-                    myPosition.showInfoWindow();
-                }
-            });
+            deleteSosRequest();
         } else {
             if (myLocation == null) {
                 showSnackBar(" Sorry couldn't locate you.Failed to make request.");
-
             } else {
-                OpioidRequest userRequest = new OpioidRequest(user, myLocation.getLatitude(), myLocation.getLongitude());
-                user_requestRef.document(user.getEmail()).set(userRequest).addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        showSnackBar(" Your SOS request has been sent successfully");
-                        requestStatus = "Requested nalaxone";
-                        myPosition.setSnippet(requestStatus);
-                        myPosition.showInfoWindow();
-                        isRequested = true;
-                        b.setText("Cancel Request");
-                        status.setText("Request has been made wating for acceptence");
-                        listenForAcceptence(true);
-
-                    }
-                });
+                OpioidRequest userRequest = new OpioidRequest(user, myLocation.getLatitude(), myLocation.getLongitude(),myPreference.getFirebaseId());
+                makeSosRequest(userRequest);
             }
         }
+    }
+    private void makeSosRequest(final OpioidRequest userRequest) {
+        final Button b = findViewById(R.id.requestButton);
+        user_requestRef.document(user.getEmail()).set(userRequest).addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                showSnackBar(" Your SOS request has been sent successfully");
+                requestStatus = "Requested nalaxone";
+                status.setText("Request has been made wating for acceptence");
+                b.setText("Cancel request");
+                changeMyLocationMarkerStatus();
+                isRequested = true;
+                myPreference.setIsRequested(true);
+                FirebaseSendNotification firebaseSendNotification = new FirebaseSendNotification(OpioidDashboardActivity.this,userRequest);
+                firebaseSendNotification.sendNotification();
+                listenForAcceptence(true);
 
 
+
+            }
+        });
+    }
+    private void deleteSosRequest() {
+        final Button b = findViewById(R.id.requestButton);
+        user_requestRef.document(user.getEmail()).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                b.setText("SOS");
+                showSnackBar("Your Request has been cancelled");
+                status.setText("Request if you need naloxone");
+                requestStatus = " Need naloxone ?";
+                changeMyLocationMarkerStatus();
+                isRequested = false;
+                myPreference.setIsRequested(isRequested);
+            }
+        });
+    }
+    private void changeMyLocationMarkerStatus() {
+        myPosition.setSnippet(requestStatus);
+        myPosition.showInfoWindow();
     }
 
     // Request and Response methods
@@ -340,14 +380,15 @@ public class OpioidDashboardActivity extends FragmentActivity
                 if (snapshot != null && snapshot.exists()) {
                     showLog("Current data:");
                     OpioidRequest opioidRequest = snapshot.toObject(OpioidRequest.class);
-                    //showToast("Changed " + opioidRequest.getSolved());
                     if (opioidRequest.getSolved()) {
                         showAcceptanceDailog(opioidRequest);
                     } else {
                         if (isAnswered) {
+                            requestStatus ="Your request was cancelled by naloxone provider";
                             showSnackBar("Your request was cancelled");
                             isAnswered = false;
-                            status.setText("Your request was cancelled by naloxone provider");
+                            status.setText(requestStatus);
+                            myPreference.setIsAnswered(false);
                         }
 
                     }
@@ -361,7 +402,6 @@ public class OpioidDashboardActivity extends FragmentActivity
 
     }
     private void showAcceptanceDailog(final OpioidRequest opioidRequest) {
-
         locationRef.document(opioidRequest.getAcceptedUserId()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -376,8 +416,8 @@ public class OpioidDashboardActivity extends FragmentActivity
                             @Override
                             public void OnClick() {
                                 isAnswered = true;
-                                putNaloxoneProviderHomeOnMap(opioidRequest);
-                                status.setText("Help is on the way");
+                                myPreference.setIsAnswered(isAnswered);
+                                getCurrenNaloxoneUserHome(opioidRequest);
                             }
                         })
                         .OnNegativeClicked(new FancyGifDialogListener() {
@@ -391,6 +431,12 @@ public class OpioidDashboardActivity extends FragmentActivity
         });
 
     }
+    private void getCurrenNaloxoneUserHome(OpioidRequest opioidRequest) {
+        requestStatus = "Help is on the way";
+        putNaloxoneProviderHomeOnMap(opioidRequest);
+        status.setText(requestStatus);
+    }
+
     private void putNaloxoneProviderHomeOnMap(final OpioidRequest opioidRequest) {
         naloxoneRef.document(opioidRequest.getAcceptedUserId()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
@@ -418,7 +464,6 @@ public class OpioidDashboardActivity extends FragmentActivity
         });
 
     }
-
     private void addRoutes(Marker src,Marker dest) {
         GoogleDirection.withServerKey(OpioidDashboardActivity.this.getString(R.string.google_api_key))
                 .from(new LatLng(src.getPosition().latitude, src.getPosition().longitude))
@@ -459,6 +504,21 @@ public class OpioidDashboardActivity extends FragmentActivity
     }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // my custom methods
     private void showSnackBar(String message) {
         View v = findViewById(R.id.fab);
@@ -471,10 +531,6 @@ public class OpioidDashboardActivity extends FragmentActivity
     private void showToast(String s) {
         Toast.makeText(getApplicationContext(), s, Toast.LENGTH_LONG).show();
     }
-
-
-
-
 
 
     @Override
@@ -524,7 +580,7 @@ public class OpioidDashboardActivity extends FragmentActivity
                     .addOnCompleteListener(new OnCompleteListener<Void>() {
                         public void onComplete(@NonNull Task<Void> task) {
                             myPreference.clearAll();
-                            startActivity(new Intent(OpioidDashboardActivity.this, SpalshTutorial.class));
+                            startActivity(new Intent(OpioidDashboardActivity.this, RegisterTutorial.class));
                             finish();
                         }
                     });

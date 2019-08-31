@@ -51,7 +51,8 @@
                     android:textColor="#ffff"
                     android:paddingLeft="@dimen/card_elevation"
                     android:paddingRight="@dimen/card_elevation"
-                    android:textAllCaps="false"/>
+                    android:textAllCaps="false"
+                    android:id="@id/requestButton"/>
 
             </LinearLayout>
 

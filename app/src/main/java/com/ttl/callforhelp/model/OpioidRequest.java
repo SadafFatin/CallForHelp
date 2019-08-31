@@ -58,13 +58,24 @@ public class OpioidRequest {
     public Boolean isSolved= false;
     public String timestamp;
 
+    public String getFirebseId() {
+        return firebseId;
+    }
+
+    public void setFirebseId(String firebseId) {
+        this.firebseId = firebseId;
+    }
+
+    public String firebseId;
+
     public OpioidRequest() {
     }
 
-    public OpioidRequest(User user, Double latitude, Double longitude) {
+    public OpioidRequest(User user, Double latitude, Double longitude,String fbid) {
         this.user = user;
         this.latitude = latitude;
         this.longitude = longitude;
         this.timestamp = new Date().toString();
+        this.firebseId = fbid;
     }
 }

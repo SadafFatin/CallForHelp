@@ -8,8 +8,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.media.MediaPlayer;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -96,7 +94,7 @@ public class NalexoneDashboardActivity extends FragmentActivity
 
 
     //Opioid Request
-    private List<OpioidMarkers> oldOpioidMarkers;
+
     private List<OpioidMarkers> currentOpioidMarkers;
 
 
@@ -126,7 +124,6 @@ public class NalexoneDashboardActivity extends FragmentActivity
         user = myPreference.getCurrentUser();
 
         //listen for db changes
-        oldOpioidMarkers = new ArrayList<>();
         currentOpioidMarkers = new ArrayList<>();
         this.listenForNewSosRequests(true);
 
@@ -157,8 +154,8 @@ public class NalexoneDashboardActivity extends FragmentActivity
         TextView address = v.findViewById(R.id.subtitle_view);
         address.setText(user.getAddress());
 
-        ImageView imageView =  v.findViewById(R.id.imageView);
-        Glide.with(this).load(myPreference.getUserImgUri()).into(imageView);
+        ImageView imageView = v.findViewById(R.id.imageView);
+        Glide.with(this).load(R.drawable.dummy_user).into(imageView);
 
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -261,7 +258,7 @@ public class NalexoneDashboardActivity extends FragmentActivity
                         .setUseNetwork(true)
                         .setUsePassive(true)
                         .setTimeBetweenUpdates(30 * 1000)
-                        .setMetersBetweenUpdates(1);
+                        .setMetersBetweenUpdates(3);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             showSnackBar("UserLocation Permission required to operate");
@@ -305,7 +302,9 @@ public class NalexoneDashboardActivity extends FragmentActivity
                 currentOpioidMarkers.clear();
                 for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                     OpioidMarkers opioidMarker = generateOpioidMarker(doc);
-                    currentOpioidMarkers.add(opioidMarker);
+                    if(opioidMarker!=null){
+                        currentOpioidMarkers.add(opioidMarker);
+                    }
                 }
 
                 int newCount = currentOpioidMarkers.size() - count;
@@ -328,16 +327,17 @@ public class NalexoneDashboardActivity extends FragmentActivity
     }
     private OpioidMarkers generateOpioidMarker(QueryDocumentSnapshot doc) {
         OpioidRequest opioidRequest = doc.toObject(OpioidRequest.class);
-        Marker marker = mMap.addMarker(new MarkerOptions()
-                .position(new LatLng(opioidRequest.getLatitude(), opioidRequest.getLongitude()))
-                .title(opioidRequest.getUser().getName()).snippet("is requesting"));
+        if(mMap!=null){
+            Marker marker = mMap.addMarker(new MarkerOptions()
+                    .position(new LatLng(opioidRequest.getLatitude(), opioidRequest.getLongitude()))
+                    .title(opioidRequest.getUser().getName()).snippet("is requesting"));
+            marker.showInfoWindow();
 
-        marker.showInfoWindow();
-
-        OpioidMarkers opioidMarkers = new OpioidMarkers(opioidRequest, marker);
-        marker.setTag(opioidMarkers);
-        return opioidMarkers;
-
+            OpioidMarkers opioidMarkers = new OpioidMarkers(opioidRequest, marker);
+            marker.setTag(opioidMarkers);
+            return opioidMarkers;
+        }
+        return null;
     }
     public void respondingOrNot(View view) {
         if(isAcceptedRequest){
@@ -389,30 +389,16 @@ public class NalexoneDashboardActivity extends FragmentActivity
             mNotificationManager.createNotificationChannel(notificationChannel);
         }
         mNotificationManager.notify(001, mBuilder.build());
-
-
-        Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-        if (alert == null) {
-            alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            if (alert == null) {
-                alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
-            }
-        }
-        final MediaPlayer mp = MediaPlayer.create(getApplicationContext(), alert);
-
+        final MediaPlayer mp = MediaPlayer.create(getApplicationContext(), R.raw.sound);
         CountDownTimer cntr_aCounter = new CountDownTimer(10000, 1000) {
             public void onTick(long millisUntilFinished) {
-
                 mp.start();
             }
-
             public void onFinish() {
-                //code fire after finish
                 mp.stop();
             }
         };
         cntr_aCounter.start();
-
     }
     private void showSnackBar(String message) {
         View v = findViewById(R.id.fab);
@@ -527,7 +513,7 @@ public class NalexoneDashboardActivity extends FragmentActivity
                     .addOnCompleteListener(new OnCompleteListener<Void>() {
                         public void onComplete(@NonNull Task<Void> task) {
                             myPreference.clearAll();
-                            startActivity(new Intent(NalexoneDashboardActivity.this, SpalshTutorial.class));
+                            startActivity(new Intent(NalexoneDashboardActivity.this, RegisterTutorial.class));
                             finish();
                         }
                     });

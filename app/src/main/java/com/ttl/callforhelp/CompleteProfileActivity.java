@@ -1,25 +1,29 @@
 package com.ttl.callforhelp;
 
-import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 
-import com.example.easywaylocation.EasyWayLocation;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -34,36 +38,44 @@ import com.ttl.callforhelp.util.MyPreference;
 import com.ttl.callforhelp.util.ReferenceTerms;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 import static com.ttl.callforhelp.util.ReferenceTerms.PICK_IMAGE_REQUEST;
 
 public class CompleteProfileActivity extends AppCompatActivity {
 
     //location
-    private Double lati, longi;
     Location myLocation;
-    private FusedLocationProviderClient fusedLocationClient;
+    private FusedLocationProviderClient client;
+    private LocationManager locationManager;
+
+    //isLocationEnabled
 
 
-
-
-    //ImageView
-    private EditText address;
+    //View
+    private EditText address,phoneNum;
     private ImageView imageView;
     private TextView detail;
     private ProgressDialog progressDialog;
+    LinearLayout linearLayout;
+    Button skip;
 
 
-    //a Uri object to store file path
+    // Uri object to store file path
     private Uri filePath;
     private boolean isImageUploaded = false;
     User user;
     MyPreference myPreference;
-    private String useraddress;
+    private String useraddress,userphnNum;
 
     //firebase
     FirebaseFirestore db;
     private StorageReference mStorageRef;
+
+
+
 
 
     @Override
@@ -71,57 +83,89 @@ public class CompleteProfileActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_complete_profile);
 
-        locationListener();
-
-        /*private LocationManager locationManager;
-        private String mprovider;
-        private Location locationGPS;
-        private Location locationNet;
-
-        mprovider = LocationManager.NETWORK_PROVIDER;
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            showToast("Need GPS permission for getting your location");
-        }
-        else {
-            locationGPS = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            locationNet = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            myLocation = getLastBestLocation(locationGPS,locationNet);
-        }*/
-
+        requestLocationandAddress();
         myPreference = MyPreference.getInstance(this);
+
         mStorageRef = FirebaseStorage.getInstance().getReference();
         db = FirebaseFirestore.getInstance();
-        user = new User(myPreference.getUserType(), myPreference.getUserName(), myPreference.getUserEmail(), null, null, null, null);
 
+        user = new User(myPreference.getUserType(), myPreference.getUserName(), myPreference.getUserEmail(), null, null, null, null,null);
 
+        linearLayout = findViewById(R.id.imageLyt);
         detail = findViewById(R.id.detail);
         imageView = findViewById(R.id.imageView);
         address = findViewById(R.id.address);
-        address.setText(myPreference.getUserAddress());
+        address.setText("");
+        skip = findViewById(R.id.skip);
         progressDialog = new ProgressDialog(this);
+        phoneNum = findViewById(R.id.phnNum);
 
         String text = "";
-
         if (user.getType().equals(ReferenceTerms.naloxone)) {
             text = "Welcome " + user.getName() + ".Please provide the address where you keep your Naloxone and upload a picture to complete your profile..";
         } else {
-            text = "Welcome " + user.getName() + ",please provide your address and profile picture to complete your profile.";
+            text = "Welcome " + user.getName() + ",please provide your address and Phone Number and Profile Image.";
+            skip.setVisibility(View.VISIBLE);
         }
         detail.setText(text);
 
 
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+    @SuppressLint("MissingPermission")
+    private void requestLocationandAddress() {
+        client = LocationServices.getFusedLocationProviderClient(this);
+        client.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
+            @Override
+            public void onSuccess(Location location) {
+               if(location!=null){
+                   myLocation = location;
+                   getAddress(myLocation);
+               }
+            }
+        });
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
+    private void getAddress(Location myLocation) {
+        List<Address> addresses = null;
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        try {
+            addresses = geocoder.getFromLocation(
+                    myLocation.getLatitude(),
+                    myLocation.getLongitude(),
+                    // In this sample, get just a single address.
+                    1);
+        } catch (IOException ioException) {
+            // Catch network or other I/O problems.
+            showToast(ioException.getLocalizedMessage());
+            useraddress = "Please prove the address";
+        } catch (IllegalArgumentException illegalArgumentException) {
+            useraddress = "Please prove the address";
+            showToast(illegalArgumentException.getLocalizedMessage());
+        }
+
+        // Handle case where no address was found.
+        if (addresses == null || addresses.size()  == 0) {
+            showToast("Could not find the address");
+            useraddress = "Could not find the address";
+        } else {
+            Address address = addresses.get(0);
+            ArrayList<String> addressFragments = new ArrayList<String>();
+            for(int i = 0; i <= address.getMaxAddressLineIndex(); i++) {
+                addressFragments.add(address.getAddressLine(i));
+            }
+            useraddress = TextUtils.join(System.getProperty("line.separator"),
+                    addressFragments);
+        }
+
+        user.setLon(String.valueOf(myLocation.getLongitude()));
+        user.setLat(String.valueOf(myLocation.getLatitude()));
+        address.setText(useraddress);
+        user.setAddress(useraddress);
+
     }
+
 
     //handling the image chooser activity result
     @Override
@@ -143,14 +187,11 @@ public class CompleteProfileActivity extends AppCompatActivity {
     public void choose(View view) {
         showFileChooser();
     }
-
     public void upload(View view) {
         uploadFile();
     }
-
     public void pickaplace(View view) {
     }
-
     public void completeProfile(View view) {
         this.updateProfileData(progressDialog);
     }
@@ -171,7 +212,7 @@ public class CompleteProfileActivity extends AppCompatActivity {
         //if there is a file to upload
         if (filePath != null && address.getText().toString() != "") {
             //displaying a progress dialog while upload is going on
-            uploadForUser();
+            uploadProfileImage();
         }
         //if there is not any file
         else {
@@ -179,8 +220,7 @@ public class CompleteProfileActivity extends AppCompatActivity {
         }
     }
 
-    private void uploadForUser() {
-
+    private void uploadProfileImage() {
         progressDialog.setTitle("Uploading");
         progressDialog.show();
         final StorageReference riversRef = mStorageRef.child("images/" + user.getEmail() + user.getType());
@@ -193,8 +233,8 @@ public class CompleteProfileActivity extends AppCompatActivity {
                             public void onSuccess(Uri uri) {
                                 isImageUploaded = true;
                                 user.setImageUri(uri.toString());
+                                showToast("Image uploaded successfully");
                                 progressDialog.dismiss();
-
                             }
                         });
                     }
@@ -202,6 +242,7 @@ public class CompleteProfileActivity extends AppCompatActivity {
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception exception) {
+                        isImageUploaded = false;
                         progressDialog.dismiss();
                         showToast(exception.getMessage());
                     }
@@ -210,95 +251,58 @@ public class CompleteProfileActivity extends AppCompatActivity {
                     @Override
                     public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
                         double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
-                        progressDialog.setMessage("Uploaded " + ((int) progress) + "%...");
+                        progressDialog.setMessage("Uploading " + ((int) progress) + "%...");
                     }
                 });
 
     }
 
     private void updateProfileData(final ProgressDialog progressDialog) {
-        if (isImageUploaded == false) {
-            showToast(" Please Upload Image First");
-        } else if (user.getLat() == null || user.getLon() == null || user.getAddress() == null) {
-            showToast("Could not determine your location and address.Please try again");
-        } else {
-            progressDialog.setTitle("Updating your profile information.");
-            progressDialog.show();
-            db.collection(user.getType()).document(user.getEmail()).set(user).addOnSuccessListener(new OnSuccessListener<Void>() {
-                @Override
-                public void onSuccess(Void aVoid) {
-                    progressDialog.dismiss();
-                    showToast(" Your Profile is updated");
-                    myPreference.savePreferences(user);
-                    if (user.getType().equals(ReferenceTerms.opioid)) {
-                        startActivity(new Intent(CompleteProfileActivity.this, OpioidDashboardActivity.class));
-                        finish();
-                    } else {
-                        startActivity(new Intent(CompleteProfileActivity.this, NalexoneDashboardActivity.class));
-                        finish();
-                    }
-                }
-            });
 
+        user.setPhoneNum(phoneNum.getText().toString());
+        if(user.getType().equals(ReferenceTerms.naloxone)){
+            if(user.getPhoneNum().length()<5){
+                showToast(" Please Provide your phone number");
+            }
+            else if (isImageUploaded == false) {
+                showToast(" Please Upload Image First");
+            } else if (user.getLat() == null || user.getLon() == null || user.getAddress() == null ) {
+                showToast("Could not determine your location and address.Please try again");
+            } else {
+                upLoadUserData(progressDialog);
+            }
         }
+        else {
+            upLoadUserData(progressDialog);
+        }
+    }
 
+    private void upLoadUserData(final ProgressDialog progressDialog) {
+
+        db.collection(user.getType()).document(user.getEmail()).set(user).addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                progressDialog.dismiss();
+                showToast(" Your Profile is updated");
+                myPreference.savePreferences(user);
+                if (user.getType().equals(ReferenceTerms.opioid)) {
+                    startActivity(new Intent(CompleteProfileActivity.this, OpioidDashboardActivity.class));
+                    finish();
+                } else {
+                    startActivity(new Intent(CompleteProfileActivity.this, NalexoneDashboardActivity.class));
+                    finish();
+                }
+            }
+        });
     }
 
     private void showToast(String s) {
         Toast.makeText(getApplicationContext(), s, Toast.LENGTH_LONG).show();
     }
 
-    private void locationOn(Location location) {
 
-        lati = location.getLatitude();
-        longi = location.getLongitude();
-        useraddress =EasyWayLocation.getAddress(this,location.getLatitude(),location.getLongitude(),false,true);
-        user.setLon(String.valueOf(longi));
-        user.setLat(String.valueOf(lati));
-        address.setText(useraddress);
-        user.setAddress(useraddress);
+    public void skipNow(View view) {
 
+        updateProfileData(progressDialog);
     }
-
-    private void locationListener() {
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            showToast("You must provide location permission to this app");
-        }
-        else {
-            fusedLocationClient.getLastLocation()
-                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
-                        @Override
-                        public void onSuccess(Location location) {
-                            if (location != null) {
-                                myLocation = location;
-                                locationOn(myLocation);
-                            }
-                        }
-                    });
-        }
-    }
-
-
-
-    private Location getLastBestLocation(Location locationGPS,Location locationNet) {
-
-
-        long GPSLocationTime = 0;
-        if (null != locationGPS) { GPSLocationTime = locationGPS.getTime(); }
-
-        long NetLocationTime = 0;
-
-        if (null != locationNet) {
-            NetLocationTime = locationNet.getTime();
-        }
-
-        if ( 0 < GPSLocationTime - NetLocationTime ) {
-            return locationGPS;
-        }
-        else {
-            return locationNet;
-        }
-    }
-
 }

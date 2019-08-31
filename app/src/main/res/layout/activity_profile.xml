@@ -1,9 +1,166 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ProfileActivity">
+    android:orientation="vertical"
+    tools:context=".ProfileActivity"
+    android:gravity="center_horizontal"
+    android:padding="@dimen/card_elevation">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColorHint="#ADCCE2"
+        android:textColor="#243F52"
+        android:padding="@dimen/card_elevation"
+        android:layout_margin="@dimen/card_elevation"
+        android:textSize="16sp"
+        android:id="@+id/detail"/>
+
+    <EditText
+        android:id="@+id/address"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Your Address "
+        android:inputType="text"
+        android:background="#7EE9E7E7"
+        android:padding="@dimen/card_elevation"
+        android:layout_margin="@dimen/card_elevation"
+        android:textSize="16sp"
+        android:drawableLeft="@drawable/ic_edit_location"
+        android:onClick="pickaplace"
+        android:fontFamily="@font/roboto_semi_bold"
+        android:lines="3"
+        android:gravity="center_vertical"
+        />
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="30dp"
+        android:background="@drawable/button_bg_dark"
+        android:text="Use Current Address"
+        android:textColor="#ffff"
+        android:textSize="12sp"
+        android:paddingLeft="4dp"
+        android:paddingRight="4dp"
+        android:textAllCaps="false"
+        android:onClick="useCurrent"/>
+
+    <EditText
+        android:id="@+id/phnNum"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Your Phone Number "
+        android:inputType="text"
+        android:background="#7EE9E7E7"
+        android:padding="@dimen/card_elevation"
+        android:layout_margin="@dimen/card_elevation"
+        android:textSize="16sp"
+        android:drawableLeft="@drawable/ic_local_phone"
+        android:onClick="pickaplace"
+        android:fontFamily="@font/roboto_semi_bold"
+        android:lines="3"
+        android:gravity="center_vertical"
+        />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        >
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="220dp"
+            android:layout_height="250dp"
+            android:layout_marginTop="11dp"
+            android:background="@drawable/button_bg_accent"
+            android:fitsSystemWindows="true"
+            android:cropToPadding="true"
+            android:padding="@dimen/activity_horizontal_margin"
+            android:layout_centerInParent="true"/>
+
+        <TextView
+            android:id="@+id/caption"
+            android:layout_width="220dp"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/imageView"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="9dp"
+            android:background="@drawable/button_bg_dark"
+            android:gravity="center"
+            android:textColor="@color/colorDescription"
+            android:textSize="14sp" />
+
+    </RelativeLayout>
+
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="2"
+        android:padding="@dimen/card_elevation"
+        android:id="@+id/imageLyt">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:layout_weight=".7"
+            android:text="Take a image "
+            android:background="@drawable/button_bg_light"
+            android:padding="@dimen/card_elevation"
+            android:layout_margin="@dimen/card_elevation"
+            android:drawableLeft="@drawable/ic_menu_camera"
+            android:drawablePadding="@dimen/card_elevation"
+            android:textColor="#ffff"
+            android:onClick="choose"/>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:layout_weight=".7"
+            android:text="Upload photo"
+            android:background="@drawable/button_bg_dark"
+            android:padding="@dimen/card_elevation"
+            android:layout_margin="@dimen/card_elevation"
+            android:drawableLeft="@drawable/ic_file_upload"
+            android:drawablePadding="@dimen/card_elevation"
+            android:textColor="#ffff"
+            android:onClick="upload"/>
+
+    </LinearLayout>
+
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="Update Profile"
+        android:background="@drawable/button_bg_accent"
+        android:padding="@dimen/card_elevation"
+        android:layout_margin="@dimen/card_elevation"
+        android:drawableLeft="@drawable/ic_check"
+        android:drawablePadding="@dimen/card_elevation"
+        android:textColor="#ffff"
+        android:onClick="completeProfile"/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</LinearLayout>
+
+

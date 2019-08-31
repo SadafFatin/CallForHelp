@@ -10,5 +10,7 @@
     <color name="colorbgDark">#DF5E35B1</color>
     <color name="colorbgAccent">#D82F4F6B</color>
 
+    <color name="black_overlay">#66000000</color>
+
 
 </resources>
